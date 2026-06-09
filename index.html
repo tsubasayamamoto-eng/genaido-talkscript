@@ -219,6 +219,31 @@
   .toast.show{opacity:1;}
 
   .foot{text-align:center;color:var(--ink-soft);font-size:11.5px;margin:26px 4px 0;}
+
+  /* Auth gate */
+  .auth-back{
+    position:fixed;inset:0;z-index:100;background:var(--indigo);
+    display:flex;align-items:center;justify-content:center;padding:24px;
+  }
+  .auth-box{
+    background:var(--paper);border-radius:20px;padding:30px 24px 26px;
+    width:100%;max-width:360px;text-align:center;box-shadow:0 16px 40px rgba(0,0,0,.3);
+  }
+  .auth-box .auth-logo{font-size:34px;}
+  .auth-box h2{margin:8px 0 2px;font-size:19px;color:var(--indigo);}
+  .auth-box .auth-lead{margin:0 0 16px;font-size:13.5px;color:var(--ink-soft);}
+  .auth-box input{
+    width:100%;border:2px solid var(--line);border-radius:12px;
+    padding:13px 14px;font-size:17px;font-family:inherit;text-align:center;letter-spacing:.05em;
+  }
+  .auth-box input:focus{outline:none;border-color:var(--indigo-soft);}
+  .auth-box button{
+    width:100%;margin-top:12px;background:var(--coral);color:#fff;border:none;
+    border-radius:12px;padding:15px;font-size:17px;font-weight:700;cursor:pointer;
+  }
+  .auth-box button:active{transform:scale(.99);}
+  .auth-err{min-height:18px;margin:10px 0 0;font-size:13px;font-weight:700;color:var(--red);}
+  .auth-note{margin:6px 0 0;font-size:12px;color:var(--ink-soft);}
 </style>
 </head>
 <body>
@@ -242,7 +267,108 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- パスワードゲート -->
+<div class="auth-back" id="authBack">
+  <div class="auth-box">
+    <div class="auth-logo">🔒</div>
+    <h2>玄愛堂 トークスクリプト</h2>
+    <p class="auth-lead">パスワードを入力してください</p>
+    <input type="password" id="authInput" placeholder="パスワード" autocomplete="current-password" autocapitalize="off" autocorrect="off">
+    <button id="authBtn">入る</button>
+    <p class="auth-err" id="authErr"></p>
+    <p class="auth-note">一度入ると、この端末では3時間は再入力不要です</p>
+  </div>
+</div>
+
 <script>
+/* ===================== パスワードゲート ===================== */
+/* セキュリティではなく「無関係な人の抑止」目的。パスワードは平文では持たず、
+   ソルト付きSHA-256で照合する。一度通れば3時間は再入力不要。 */
+const AUTH_SALT = "genaido-talk::";
+const AUTH_HASH = "7febf23d17407ef4701b78d1de9815cc86c3fc7fc7bef4a3e2aa9675649f2d18";
+const AUTH_KEY  = "genaido_auth_until";
+const AUTH_HOURS = 3;
+
+function sha256(ascii){
+  function rr(v,a){ return (v>>>a)|(v<<(32-a)); }
+  var mp=Math.pow, mw=mp(2,32), result='';
+  var words=[], bitLen=ascii.length*8;
+  var hash=sha256.h=sha256.h||[], k=sha256.k=sha256.k||[], pc=k.length;
+  var comp={};
+  for(var cand=2; pc<64; cand++){
+    if(!comp[cand]){
+      for(var i=0;i<313;i+=cand){ comp[i]=cand; }
+      hash[pc]=(mp(cand,0.5)*mw)|0;
+      k[pc++]=(mp(cand,1/3)*mw)|0;
+    }
+  }
+  ascii+='\x80';
+  while(ascii.length%64-56) ascii+='\x00';
+  for(var i=0;i<ascii.length;i++){
+    var j=ascii.charCodeAt(i);
+    if(j>>8) return;
+    words[i>>2]|=j<<((3-i)%4)*8;
+  }
+  words[words.length]=((bitLen/mw)|0);
+  words[words.length]=(bitLen);
+  for(var j=0;j<words.length;){
+    var w=words.slice(j,j+=16);
+    var oh=hash;
+    hash=hash.slice(0,8);
+    for(var i=0;i<64;i++){
+      var w15=w[i-15], w2=w[i-2];
+      var a=hash[0], e=hash[4];
+      var t1=hash[7]
+        + (rr(e,6)^rr(e,11)^rr(e,25))
+        + ((e&hash[5])^((~e)&hash[6]))
+        + k[i]
+        + (w[i]=i<16?w[i]:(
+            w[i-16]
+            + (rr(w15,7)^rr(w15,18)^(w15>>>3))
+            + w[i-7]
+            + (rr(w2,17)^rr(w2,19)^(w2>>>10))
+          )|0);
+      var t2=(rr(a,2)^rr(a,13)^rr(a,22))
+        + ((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+      hash=[(t1+t2)|0].concat(hash);
+      hash[4]=(hash[4]+t1)|0;
+    }
+    for(var i=0;i<8;i++){ hash[i]=(hash[i]+oh[i])|0; }
+  }
+  for(var i=0;i<8;i++){
+    for(var j=3;j+1;j--){
+      var b=(hash[i]>>(j*8))&255;
+      result+=((b<16)?0:'')+b.toString(16);
+    }
+  }
+  return result;
+}
+function authValid(){
+  var until = parseInt(localStorage.getItem(AUTH_KEY)||"0",10);
+  return Date.now() < until;
+}
+function grantAuth(){
+  localStorage.setItem(AUTH_KEY, String(Date.now() + AUTH_HOURS*3600*1000));
+}
+function tryAuth(){
+  var inp=document.getElementById('authInput');
+  if(sha256(AUTH_SALT + inp.value) === AUTH_HASH){
+    grantAuth();
+    var b=document.getElementById('authBack'); if(b) b.remove();
+  }else{
+    document.getElementById('authErr').textContent='パスワードが違います';
+    inp.value=''; inp.focus();
+  }
+}
+function initAuth(){
+  var back=document.getElementById('authBack');
+  if(authValid()){ if(back) back.remove(); return; }
+  var btn=document.getElementById('authBtn'), inp=document.getElementById('authInput');
+  btn.onclick=tryAuth;
+  inp.addEventListener('keydown',function(e){ if(e.key==='Enter') tryAuth(); });
+  setTimeout(function(){ inp.focus(); }, 100);
+}
+
 /* ===================== データ（玄愛堂 固定スクリプト） ===================== */
 const SELF = {
   company: "株式会社玄愛堂（ゲンアイドウ）",
@@ -736,6 +862,7 @@ const STEPS = {
 };
 
 /* ===================== 起動 ===================== */
+initAuth();
 goHome();
 </script>
 </body>
