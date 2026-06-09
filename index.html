@@ -243,7 +243,14 @@
   }
   .auth-box button:active{transform:scale(.99);}
   .auth-err{min-height:18px;margin:10px 0 0;font-size:13px;font-weight:700;color:var(--red);}
-  .auth-note{margin:6px 0 0;font-size:12px;color:var(--ink-soft);}
+
+  /* Illustrations */
+  .auth-art{display:flex;justify-content:center;margin:0 0 2px;}
+  .auth-art svg{width:108px;height:auto;}
+  .hero-art{display:flex;justify-content:center;margin:-2px 0 8px;}
+  .hero-art svg{width:132px;height:auto;filter:drop-shadow(0 6px 16px rgba(0,0,0,.22));}
+  .step-art{display:flex;justify-content:center;margin:6px 0 14px;}
+  .step-art svg{width:104px;height:auto;}
 </style>
 </head>
 <body>
@@ -270,13 +277,12 @@
 <!-- パスワードゲート -->
 <div class="auth-back" id="authBack">
   <div class="auth-box">
-    <div class="auth-logo">🔒</div>
+    <div class="auth-art" id="authArt"></div>
     <h2>玄愛堂 トークスクリプト</h2>
     <p class="auth-lead">パスワードを入力してください</p>
     <input type="password" id="authInput" placeholder="パスワード" autocomplete="current-password" autocapitalize="off" autocorrect="off">
     <button id="authBtn">入る</button>
     <p class="auth-err" id="authErr"></p>
-    <p class="auth-note">一度入ると、この端末では3時間は再入力不要です</p>
   </div>
 </div>
 
@@ -288,6 +294,39 @@ const AUTH_SALT = "genaido-talk::";
 const AUTH_HASH = "7febf23d17407ef4701b78d1de9815cc86c3fc7fc7bef4a3e2aa9675649f2d18";
 const AUTH_KEY  = "genaido_auth_until";
 const AUTH_HOURS = 3;
+
+/* ===================== イラスト（女性オペレーター・インラインSVG） ===================== */
+const OPERATOR_SVG = `<svg viewBox="0 0 220 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="電話オペレーターのイラスト">
+  <circle cx="104" cy="106" r="96" fill="#F4EFE3"/>
+  <circle cx="28" cy="70" r="5" fill="#F0A07E" opacity=".7"/>
+  <circle cx="196" cy="160" r="6" fill="#7488B9" opacity=".55"/>
+  <circle cx="40" cy="170" r="4" fill="#7488B9" opacity=".5"/>
+  <path d="M36 210 C36 156 70 140 110 140 C150 140 184 156 184 210 Z" fill="#E26B43"/>
+  <path d="M96 148 L110 166 L124 148 L118 140 L102 140 Z" fill="#ffffff" opacity=".95"/>
+  <rect x="99" y="118" width="22" height="22" rx="9" fill="#EBB78C"/>
+  <path d="M62 108 C58 58 84 38 110 38 C136 38 162 58 158 108 C158 134 151 154 151 154 L150 112 C150 82 132 66 110 66 C88 66 70 82 70 112 L69 154 C69 154 62 134 62 108 Z" fill="#43342B"/>
+  <circle cx="110" cy="98" r="35" fill="#F7D4B2"/>
+  <circle cx="76" cy="100" r="7" fill="#F0C49C"/>
+  <circle cx="144" cy="100" r="7" fill="#F0C49C"/>
+  <path d="M75 94 C74 64 92 50 110 50 C128 50 146 64 145 94 C139 78 127 70 110 70 C93 70 81 78 75 94 Z" fill="#4E3C31"/>
+  <ellipse cx="98" cy="100" rx="3.4" ry="4.6" fill="#3A2C24"/>
+  <ellipse cx="122" cy="100" rx="3.4" ry="4.6" fill="#3A2C24"/>
+  <circle cx="99.2" cy="98.4" r="1.1" fill="#ffffff"/>
+  <circle cx="123.2" cy="98.4" r="1.1" fill="#ffffff"/>
+  <path d="M92 90 q6 -3.5 12 0" stroke="#4E3C31" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <path d="M116 90 q6 -3.5 12 0" stroke="#4E3C31" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+  <circle cx="91" cy="110" r="5" fill="#F4A88A" opacity=".55"/>
+  <circle cx="129" cy="110" r="5" fill="#F4A88A" opacity=".55"/>
+  <path d="M100 113 q10 8 20 0" stroke="#C9785A" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+  <path d="M73 100 A37 37 0 0 1 147 100" stroke="#2E4374" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <rect x="66" y="92" width="15" height="21" rx="6" fill="#2E4374"/>
+  <rect x="139" y="92" width="15" height="21" rx="6" fill="#2E4374"/>
+  <path d="M73 110 C65 126 80 136 98 136" stroke="#2E4374" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <circle cx="99" cy="136" r="5" fill="#2E4374"/>
+  <rect x="150" y="44" width="46" height="36" rx="13" fill="#ffffff" stroke="#2E4374" stroke-width="3"/>
+  <path d="M161 70 L156 81 L169 73 Z" fill="#ffffff" stroke="#2E4374" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M166 54 c-1.4 0-2.6 1.2-2.6 2.6 0 8 6.4 14.4 14.4 14.4 1.4 0 2.6-1.2 2.6-2.6 v-3.4 l-4.4-1.6 -1.8 2.2 c-2.2-1.1-4-2.9-5.1-5.1 l2.2-1.8 -1.6-4.4 z" fill="#E26B43"/>
+</svg>`;
 
 function sha256(ascii){
   function rr(v,a){ return (v>>>a)|(v<<(32-a)); }
@@ -363,6 +402,7 @@ function tryAuth(){
 function initAuth(){
   var back=document.getElementById('authBack');
   if(authValid()){ if(back) back.remove(); return; }
+  var art=document.getElementById('authArt'); if(art) art.innerHTML=OPERATOR_SVG;
   var btn=document.getElementById('authBtn'), inp=document.getElementById('authInput');
   btn.onclick=tryAuth;
   inp.addEventListener('keydown',function(e){ if(e.key==='Enter') tryAuth(); });
@@ -511,6 +551,7 @@ function goHome(){
 
   document.getElementById('screen').innerHTML = `
     <div class="home-hero">
+      <div class="hero-art">${OPERATOR_SVG}</div>
       <p class="eyebrow">株式会社玄愛堂 ｜ 架電ナビ</p>
       <h1>商品問い合わせ トークスクリプト</h1>
       <p>ボタンを押して進むだけ。表示された<b>🗣のセリフをそのまま読めば</b>大丈夫です。</p>
@@ -634,7 +675,6 @@ const STEPS = {
 
       <div class="panel">
         <h3>📝 今回お伝えする商品</h3>
-        <p class="ph">事前にリストで決めておき、こちらから指名して伝えます。</p>
         <div class="field"><label>商品名</label>
           <input type="text" data-bind="productName" value="${esc(cur.productName)}" placeholder="例）〇〇クリーム 50g"></div>
         <div class="field"><label>容量・サイズ</label>
@@ -844,6 +884,7 @@ const STEPS = {
     document.getElementById('screen').innerHTML = `
       <div class="step-title"><span class="step-num">6</span><h2>お礼 → 終話</h2></div>
       <p class="step-when">最後まで丁寧に</p>
+      <div class="step-art">${OPERATOR_SVG}</div>
       <div class="say" style="background:var(--green-bg);color:#21603f;border-color:#cfe6d8;">
         <span class="q" style="color:var(--green)">本日は貴重なお時間をいただき、ありがとうございました。引き続きよろしくお願いいたします。失礼いたします。</span></div>
 
