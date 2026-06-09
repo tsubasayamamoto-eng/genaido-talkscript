@@ -251,6 +251,33 @@
   .hero-art svg{width:132px;height:auto;filter:drop-shadow(0 6px 16px rgba(0,0,0,.22));}
   .step-art{display:flex;justify-content:center;margin:6px 0 14px;}
   .step-art svg{width:104px;height:auto;}
+
+  /* Mode choice */
+  .mode-card{
+    display:block;width:100%;text-align:left;cursor:pointer;font-family:inherit;
+    background:#fff;border:2px solid var(--indigo-soft);border-radius:16px;
+    padding:18px 16px;margin:0 0 12px;color:var(--ink);line-height:1.55;
+  }
+  .mode-card:active{transform:scale(.99);}
+  .mode-card .mt{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;color:var(--indigo);margin-bottom:4px;}
+  .mode-card .mt .mi{font-size:22px;}
+  .mode-card .md{font-size:13.5px;color:var(--ink-soft);}
+  .mode-card.go{border-color:var(--coral);}
+  .mode-card.go .mt{color:var(--coral);}
+
+  /* Scroll mode */
+  .scroll-step{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin:0 0 12px;}
+  .scroll-step .step-when{margin:0 0 12px 40px;}
+  .binfo{display:block;background:var(--card);border:1.5px solid var(--indigo-soft);border-radius:12px;
+    padding:11px 13px;font-size:14.5px;color:var(--ink);line-height:1.5;}
+  .binfo .bt{display:block;font-weight:700;font-size:14.5px;margin-bottom:2px;color:var(--indigo);}
+  .binfo.go{border-color:var(--green);background:var(--green-bg);}
+  .binfo.go .bt{color:var(--green);}
+  .binfo.warn{border-color:var(--coral);}
+  .binfo.warn .bt{color:var(--coral);}
+  .subblock{margin-top:10px;border-left:3px solid var(--indigo-soft);padding-left:11px;}
+  .subline{font-size:13px;color:var(--ink-soft);margin:5px 0 0;}
+  .subline b{color:var(--ink);}
 </style>
 </head>
 <body>
@@ -554,7 +581,7 @@ function goHome(){
       <div class="hero-art">${OPERATOR_SVG}</div>
       <p class="eyebrow">株式会社玄愛堂 ｜ 架電ナビ</p>
       <h1>商品問い合わせ トークスクリプト</h1>
-      <p>ボタンを押して進むだけ。表示された<b>🗣のセリフをそのまま読めば</b>大丈夫です。</p>
+      <p>表示された<b>🗣のセリフをそのまま読めば</b>大丈夫です。始めるときに<b>進め方（ナビ型／スクロール型）</b>を選べます。</p>
       <button class="start-btn" onclick="startCall()">📞 新しい架電を始める</button>
     </div>
 
@@ -604,11 +631,31 @@ function exportCSV(){
   toast("CSVを書き出しました");
 }
 
-/* ===================== 架電スタート ===================== */
+/* ===================== 架電スタート（進め方を選ぶ） ===================== */
+let mode = "navi"; // 'navi' or 'scroll'
 function startCall(){
   cur = newCall();
   stepStack = [];
-  renderStep('prep');
+  currentStepId = null;
+  setTop("進め方を選ぶ", 0);
+  setActions(null);
+  document.getElementById('screen').innerHTML = `
+    <div class="step-title"><span class="step-num">▶</span><h2>進め方を選んでください</h2></div>
+    <p class="step-when">どちらを選んでも<b>中身（セリフ・流れ）は全く同じ</b>です。やりやすい方をどうぞ。</p>
+    <button class="mode-card go" onclick="chooseMode('navi')">
+      <span class="mt"><span class="mi">🧭</span>ナビ型（1画面ずつ進む）</span>
+      <span class="md">初めての方におすすめ。相手の返事をボタンで選ぶと、次の画面へ自動で進みます。迷子になりません。</span>
+    </button>
+    <button class="mode-card" onclick="chooseMode('scroll')">
+      <span class="mt"><span class="mi">📜</span>スクロール型（全体を1ページで）</span>
+      <span class="md">慣れた方向け。全ステップを上から下に見ながら、自分のペースで進めます。</span>
+    </button>
+  `;
+}
+function chooseMode(m){
+  mode = m;
+  if(m === 'scroll'){ renderScroll(); }
+  else { renderStep('prep'); }
 }
 
 /* ===================== 結果を選んで終了（中断ピッカー） ===================== */
@@ -651,256 +698,325 @@ function abortPicker(){
   });
 }
 
-/* ===================== 各ステップの中身 ===================== */
-const STEPS = {
+/* ===================================================================
+   共有コンテンツ（ナビ型・スクロール型の両方がここから描画する）
+   ※ セリフ・分岐・切り返しなどの文言はここ1か所だけ。両モードで必ず一致。
+   =================================================================== */
+function selfShort(s){ return s.split('（')[0]; }
 
-  /* --- 事前準備 --- */
-  prep(){
-    setTop("かける前の準備", 0);
-    document.getElementById('progressWrap').classList.remove('hidden');
-    document.getElementById('progressBar').style.width="0%";
-    document.getElementById('screen').innerHTML = `
-      <div class="step-title"><span class="step-num">📋</span><h2>かける前に</h2></div>
-      <p class="step-when">相手の会社名と、今回すすめる商品をメモしておきます（後で記録に残ります）。</p>
+/* --- 部品（HTML断片を返す） --- */
+function fSay(b){
+  const style = b.green ? ' style="background:var(--green-bg);color:#21603f;border-color:#cfe6d8;"' : '';
+  const qstyle = b.green ? ' style="color:var(--green)"' : '';
+  return `<div class="say"${style}><span class="q"${qstyle}>${b.q}</span>${b.small?`<span class="small">${b.small}</span>`:''}</div>`;
+}
+function fHelper(b){
+  return `<details class="helper"><summary>${b.label}</summary><div class="hbody">${b.html}</div></details>`;
+}
+function fRebuts(b){
+  const items = b.items.map(it=>{
+    const cls = b.variant==='indigo' ? ' style="background:var(--say-bg);color:var(--say-ink)"' : '';
+    const bcl = b.variant==='indigo' ? ' style="color:var(--indigo)"' : '';
+    return `<div class="rebut"${cls}><b${bcl}>${it.b}</b>${it.text}</div>`;
+  }).join('');
+  return `${b.lead?`<p class="lead">${b.lead}</p>`:''}<div class="rebuts">${items}</div>`;
+}
+function fNote(b){
+  const st = b.bold ? 'font-size:13px;color:var(--ink-soft);font-weight:700;margin:16px 0 8px;'
+                    : 'font-size:12.5px;color:var(--ink-soft);';
+  return `<p style="${st}">${b.html}</p>`;
+}
+function fField(b){
+  const tag = b.area
+    ? `<textarea data-bind="${b.bind}" placeholder="${b.ph||''}">${esc(cur[b.bind]||'')}</textarea>`
+    : `<input type="text"${b.inputmode?` inputmode="${b.inputmode}"`:''} data-bind="${b.bind}" value="${esc(cur[b.bind]||'')}" placeholder="${b.ph||''}">`;
+  return `<div class="field">${b.label?`<label>${b.label}</label>`:''}${tag}${b.hint?`<div class="hint">${b.hint}</div>`:''}</div>`;
+}
+function fSelfname(){
+  return `<div class="panel indigo"><h3>自分の名乗り（変わりません）</h3>
+    <p class="ph" style="margin:0">「${SELF.company}の${SELF.caller}」と名乗ります。</p></div>`;
+}
+function fMemo(){
+  return `<div class="panel"><h3>📝 今回お伝えする商品</h3>
+    ${fField({label:'商品名',bind:'productName',ph:'例）〇〇クリーム 50g'})}
+    ${fField({label:'容量・サイズ',bind:'productSize',ph:'例）50g／Mサイズ など'})}
+    ${fField({label:'希望掛け率',bind:'productRate',ph:'例）60% など'})}</div>`;
+}
+function fMemoReadonly(){
+  return `<div class="panel"><h3>📝 今回お伝えする商品</h3>
+    <p class="ph" style="margin:0">商品名：<b class="refName">${esc(cur.productName||'（上で記入）')}</b>　／　容量・サイズ：<span class="refSize">${esc(cur.productSize||'—')}</span>　／　希望掛け率：<span class="refRate">${esc(cur.productRate||'—')}</span></p></div>`;
+}
+function fGoal(){
+  return `<p style="font-size:13px;color:var(--ink-soft);">ゴール＝<b>商品名を伝える → メールで見積り・カタログをもらう</b>。<br>断られても、すぐ切らずに切り返してから次へ進みます。</p>`;
+}
+function fSelfinfo(){
+  return `<div class="selfinfo">🗣 こちらの担当をお伝え：<b>${SELF.repName}</b>／メール <b>${SELF.email}</b>
+    <button class="copy" onclick="copyText('${SELF.email}')">メールをコピー</button></div>`;
+}
+function fRecord(){
+  return [
+    fField({label:'① 相手のお名前（漢字も確認）',bind:'contactName',ph:'例）佐藤 様'}),
+    fField({label:'② メールアドレス（復唱して確認）',bind:'contactEmail',inputmode:'email',ph:'例）sato@example.co.jp',hint:'復唱して「お間違いないですか？」と確認しましょう。'}),
+    fField({label:'③ 部署・役職',bind:'contactDept',ph:'例）営業部 課長'}),
+    fField({label:'④ 返信用のお電話番号',bind:'contactPhone',inputmode:'tel',ph:'例）03-xxxx-xxxx'}),
+    fField({label:'⑤ 送付の予定日',bind:'sendDate',ph:'例）今週中／6月12日 など',hint:'「いつ頃ご送付いただけますか？」と聞きましょう。'})
+  ].join('');
+}
+function fProductSay(){
+  const p1 = cur.productName ? esc(cur.productName) : '〔商品名〕';
+  return fSay({
+    q:`実は、御社の「<span class="prodref">${p1}</span>」という商品を、ぜひ弊社で取り扱わせていただきたく思っておりまして、こちらのお見積りを頂戴できますでしょうか？`,
+    small:'（複数あれば）あわせて別の商品なども、お見積りいただけますと幸いです。'
+  });
+}
 
-      <div class="panel indigo">
-        <h3>自分の名乗り（変わりません）</h3>
-        <p class="ph" style="margin:0">「${SELF.company}の${SELF.caller}」と名乗ります。</p>
-      </div>
-
-      <div class="field">
-        <label>相手の会社名</label>
-        <input type="text" data-bind="company" value="${esc(cur.company)}" placeholder="例）〇〇商事 株式会社">
-      </div>
-
-      <div class="panel">
-        <h3>📝 今回お伝えする商品</h3>
-        <div class="field"><label>商品名</label>
-          <input type="text" data-bind="productName" value="${esc(cur.productName)}" placeholder="例）〇〇クリーム 50g"></div>
-        <div class="field"><label>容量・サイズ</label>
-          <input type="text" data-bind="productSize" value="${esc(cur.productSize)}" placeholder="例）50g／Mサイズ など"></div>
-        <div class="field"><label>希望掛け率</label>
-          <input type="text" data-bind="productRate" value="${esc(cur.productRate)}" placeholder="例）60% など"></div>
-      </div>
-
-      <p style="font-size:13px;color:var(--ink-soft);">ゴール＝<b>商品名を伝える → メールで見積り・カタログをもらう</b>。<br>断られても、すぐ切らずに切り返してから次へ進みます。</p>
-    `;
-    setActions([
-      {label:"📞 架電スタート", cls:"btn-primary", onClick:()=>{ syncInputs(); go('s1'); }}
-    ]);
+/* --- ノード定義（中身は body() に集約。両モードが同じ body() を呼ぶ） --- */
+const NODES = {
+  s1:{ no:1, title:'受付突破', h:'受付突破', when:'最初に出た受付の方へ',
+    body:()=>
+      fSay({q:`お世話になります。${SELF.company}の${selfShort(SELF.caller)}ですが、新規仕入れルートのご相談で、営業／卸窓口のご担当はお見えでしょうか？`})
+      + fHelper({label:'「ご用件は？」と聞かれたら', html:'御社の商品の<b>お見積りの件</b>、とお伝えください。'})
+      + fHelper({label:'「具体的には？」と聞かれたら', html:'弊社は愛知県で小売業をしており、自社ECショップで取扱い商品を増やしたく、ぜひ御社の商品を扱わせていただきたくご連絡しました。ご担当者におつなぎいただけますか？'})
+      + fHelper({label:'「フォームから送って」と言われたら', html:'フォームから送れない資料のため、差し支えなければメールアドレスを教えていただけますか。<br><span style="color:var(--red)">→ それも断られたら「受付拒否」で記録。</span>'}),
+    branchLead:'◇ 相手の返事は？',
+    branches:[
+      {style:'go', bt:'✅ 担当者に代わってもらえた', desc:'そのまま担当者と話すへ', goto:'s2'},
+      {style:'', bt:'🔁 担当はいない と言われた', desc:'切り返しのセリフを見る', goto:'s1_none'},
+      {style:'warn', bt:'⏰ 担当者は不在だった', desc:'戻り時間をメモする', goto:'s1_absent'}
+    ],
+    naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
   },
-
-  /* --- STEP1 受付突破 --- */
-  s1(){
-    setTop("受付突破", 1);
-    document.getElementById('screen').innerHTML = `
-      <div class="step-title"><span class="step-num">1</span><h2>受付突破</h2></div>
-      <p class="step-when">最初に出た受付の方へ</p>
-
-      <div class="say"><span class="q">お世話になります。${SELF.company}の${SELF.caller.split('（')[0]}ですが、新規仕入れルートのご相談で、営業／卸窓口のご担当はお見えでしょうか？</span></div>
-
-      <details class="helper"><summary>「ご用件は？」と聞かれたら</summary>
-        <div class="hbody">御社の商品の<b>お見積りの件</b>、とお伝えください。</div></details>
-      <details class="helper"><summary>「具体的には？」と聞かれたら</summary>
-        <div class="hbody">弊社は愛知県で小売業をしており、自社ECショップで取扱い商品を増やしたく、ぜひ御社の商品を扱わせていただきたくご連絡しました。ご担当者におつなぎいただけますか？</div></details>
-      <details class="helper"><summary>「フォームから送って」と言われたら</summary>
-        <div class="hbody">フォームから送れない資料のため、差し支えなければメールアドレスを教えていただけますか。<br><span style="color:var(--red)">→ それも断られたら下の「受付拒否」で記録。</span></div></details>
-
-      <p class="lead">◇ 相手の返事は？</p>
-      <div class="choices">
-        <button class="choice go" onclick="go('s2')">
-          <span class="bt">✅ 担当者に代わってもらえた</span>そのまま担当者と話すへ <span class="arrow">→</span></button>
-        <button class="choice" onclick="go('s1_none')">
-          <span class="bt">🔁 担当はいない と言われた</span>切り返しのセリフを見る <span class="arrow">→</span></button>
-        <button class="choice warn" onclick="go('s1_absent')">
-          <span class="bt">⏰ 担当者は不在だった</span>戻り時間をメモする <span class="arrow">→</span></button>
-      </div>
-    `;
-    setActions([
-      {label:"終了して記録", cls:"btn-ghost", onClick:abortPicker}
-    ]);
+  s1_none:{ no:1, isSub:true, title:'受付突破', h:'「担当はいない」と言われたら', when:'まずこのセリフで切り返します',
+    body:()=> fSay({q:'それであれば、こちらの件でお話のわかる方におつなぎいただけますか？'}),
+    branchLead:'◇ つながりましたか？',
+    branches:[
+      {style:'go', bt:'✅ つながった', desc:'担当者と話すへ', goto:'s2'},
+      {style:'warn', bt:'✖ それでも断られた', desc:'「受付拒否」で記録して終了', result:'受付拒否'}
+    ],
+    naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
   },
-
-  /* STEP1 派生：担当いない */
-  s1_none(){
-    setTop("受付突破", 1);
-    document.getElementById('screen').innerHTML = `
-      <div class="step-title"><span class="step-num">1</span><h2>「担当はいない」と言われたら</h2></div>
-      <p class="step-when">まずこのセリフで切り返します</p>
-      <div class="say"><span class="q">それであれば、こちらの件でお話のわかる方におつなぎいただけますか？</span></div>
-      <p class="lead">◇ つながりましたか？</p>
-      <div class="choices">
-        <button class="choice go" onclick="go('s2')"><span class="bt">✅ つながった</span>担当者と話すへ <span class="arrow">→</span></button>
-        <button class="choice warn" onclick="finishWith('受付拒否')"><span class="bt">✖ それでも断られた</span>「受付拒否」で記録して終了</button>
-      </div>
-    `;
-    setActions([{label:"終了して記録", cls:"btn-ghost", onClick:abortPicker}]);
+  s1_absent:{ no:1, isSub:true, title:'受付突破', h:'担当者が不在のとき', when:'戻り時間を聞いてメモします',
+    body:()=> fSay({q:'承知しました。普段は午前10時／午後3時、どちらが社内にお見えでしょうか？'}),
+    naviExtra:()=> fField({label:'戻り時間・再架電メモ', bind:'note', area:true, ph:'例）明日 午後3時ごろ戻り／〇〇様あて'}),
+    naviActions:[
+      {label:'「担当不在」で記録して終了', cls:'btn-primary', finish:'担当不在'},
+      {label:'戻る', cls:'btn-ghost', back:true}
+    ]
   },
-
-  /* STEP1 派生：不在 */
-  s1_absent(){
-    setTop("受付突破", 1);
-    document.getElementById('screen').innerHTML = `
-      <div class="step-title"><span class="step-num">1</span><h2>担当者が不在のとき</h2></div>
-      <p class="step-when">戻り時間を聞いてメモします</p>
-      <div class="say"><span class="q">承知しました。普段は午前10時／午後3時、どちらが社内にお見えでしょうか？</span></div>
-      <div class="field"><label>戻り時間・再架電メモ</label>
-        <textarea data-bind="note" placeholder="例）明日 午後3時ごろ戻り／〇〇様あて">${esc(cur.note)}</textarea></div>
-    `;
-    setActions([
-      {label:"「担当不在」で記録して終了", cls:"btn-primary", onClick:()=>{ syncInputs(); finishWith('担当不在'); }},
-      {label:"戻る", cls:"btn-ghost", onClick:onTopLeft}
-    ]);
+  s2:{ no:2, title:'担当者と話す', h:'担当者と話す', when:'ご本人が電話口に出たら',
+    body:()=>
+      fSay({
+        q:`お忙しいところ恐れ入ります。${selfShort(SELF.company)}の${selfShort(SELF.caller)}と申します。`,
+        small:'弊社は自社でECショップを運営しているのですが、お客様から「取り扱い商品の幅をもっと広げてほしい」という声が増え、ラインナップを大幅に拡大することにしました。そこでぜひ御社の商品を<b>新たな仕入れ候補</b>として検討させていただきたく、商品情報を拝見できればと思いご連絡しました。'
+      })
+      + fRebuts({lead:'◇ 断られたら（下のどれかで切り返してそのまま続ける）', items:[
+        {b:'「結構です」', text:'今すぐ必要ないとは思いますが、同じ商材を扱うお客様も弊社経由で販売数が伸びた実績がありまして〜'},
+        {b:'「資料・サイトがない」', text:'綺麗な資料でなくて大丈夫です。普段お使いの商品リストや価格表（Excel）でも構いません〜'},
+        {b:'「大量・現金じゃないと無理」', text:'無理なロットはお願いしません。小ロットのお試しから、お支払いも御社の規定に合わせます〜'}
+      ]}),
+    naviActions:[
+      {label:'次へ：狙う商品を伝える →', cls:'btn-primary', go:'s3'},
+      {label:'終了', cls:'btn-ghost', abort:true}
+    ]
   },
-
-  /* --- STEP2 担当者と話す --- */
-  s2(){
-    setTop("担当者と話す", 2);
-    document.getElementById('screen').innerHTML = `
-      <div class="step-title"><span class="step-num">2</span><h2>担当者と話す</h2></div>
-      <p class="step-when">ご本人が電話口に出たら</p>
-
-      <div class="say"><span class="q">お忙しいところ恐れ入ります。${SELF.company.split('（')[0]}の${SELF.caller.split('（')[0]}と申します。</span>
-      <span class="small">弊社は自社でECショップを運営しているのですが、お客様から「取り扱い商品の幅をもっと広げてほしい」という声が増え、ラインナップを大幅に拡大することにしました。そこでぜひ御社の商品を<b>新たな仕入れ候補</b>として検討させていただきたく、商品情報を拝見できればと思いご連絡しました。</span></div>
-
-      <p class="lead">◇ 断られたら（下のどれかで切り返してそのまま続ける）</p>
-      <div class="rebuts">
-        <div class="rebut"><b>「結構です」</b>今すぐ必要ないとは思いますが、同じ商材を扱うお客様も弊社経由で販売数が伸びた実績がありまして〜</div>
-        <div class="rebut"><b>「資料・サイトがない」</b>綺麗な資料でなくて大丈夫です。普段お使いの商品リストや価格表（Excel）でも構いません〜</div>
-        <div class="rebut"><b>「大量・現金じゃないと無理」</b>無理なロットはお願いしません。小ロットのお試しから、お支払いも御社の規定に合わせます〜</div>
-      </div>
-    `;
-    setActions([
-      {label:"次へ：狙う商品を伝える →", cls:"btn-primary", onClick:()=>go('s3')},
-      {label:"終了", cls:"btn-ghost", onClick:abortPicker}
-    ]);
+  s3:{ no:3, title:'商品を伝える', h:'★ 狙う商品を伝える', when:'事前に決めた商品名を、こちらから指名します',
+    body:(m)=>
+      (m==='scroll' ? fMemoReadonly() : fMemo())
+      + fProductSay()
+      + fHelper({label:'「なぜその商品を？」と聞かれたら', html:'ECでその商品の需要が伸びており、安定して仕入れられる先を探しておりまして〜'})
+      + fNote({html:'※「何を扱っていますか？」と相手に聞き出すのはNG。<b>こちらから商品名を指名</b>します。'}),
+    branchLead:'◇ 相手の返事は？',
+    branches:[
+      {style:'go', bt:'✅ 扱っている', desc:'クロージングへ', goto:'s4'},
+      {style:'', bt:'🔁 その商品はない／終了', desc:'類似品を聞く', goto:'s3_alt'}
+    ],
+    naviActions:[{label:'終了', cls:'btn-ghost', abort:true}]
   },
-
-  /* --- STEP3 商品指名 --- */
-  s3(){
-    setTop("商品を伝える", 3);
-    const p1 = cur.productName ? esc(cur.productName) : "〔商品名〕";
-    document.getElementById('screen').innerHTML = `
-      <div class="step-title"><span class="step-num">3</span><h2>★ 狙う商品を伝える</h2></div>
-      <p class="step-when">事前に決めた商品名を、こちらから指名します</p>
-
-      <div class="panel">
-        <h3>📝 今回お伝えする商品</h3>
-        <div class="field"><label>商品名</label>
-          <input type="text" data-bind="productName" value="${esc(cur.productName)}" placeholder="商品名"></div>
-        <div class="field"><label>容量・サイズ</label>
-          <input type="text" data-bind="productSize" value="${esc(cur.productSize)}" placeholder="容量・サイズ"></div>
-        <div class="field"><label>希望掛け率</label>
-          <input type="text" data-bind="productRate" value="${esc(cur.productRate)}" placeholder="希望掛け率"></div>
-      </div>
-
-      <div class="say"><span class="q">実は、御社の「${p1}」という商品を、ぜひ弊社で取り扱わせていただきたく思っておりまして、こちらのお見積りを頂戴できますでしょうか？</span>
-      <span class="small">（複数あれば）あわせて別の商品なども、お見積りいただけますと幸いです。</span></div>
-
-      <details class="helper"><summary>「なぜその商品を？」と聞かれたら</summary>
-        <div class="hbody">ECでその商品の需要が伸びており、安定して仕入れられる先を探しておりまして〜</div></details>
-
-      <p style="font-size:12.5px;color:var(--ink-soft);">※「何を扱っていますか？」と相手に聞き出すのはNG。<b>こちらから商品名を指名</b>します。</p>
-
-      <p class="lead">◇ 相手の返事は？</p>
-      <div class="choices">
-        <button class="choice go" onclick="go('s4')"><span class="bt">✅ 扱っている</span>クロージングへ <span class="arrow">→</span></button>
-        <button class="choice" onclick="go('s3_alt')"><span class="bt">🔁 その商品はない／終了</span>類似品を聞く <span class="arrow">→</span></button>
-      </div>
-    `;
-    setActions([{label:"終了", cls:"btn-ghost", onClick:abortPicker}]);
+  s3_alt:{ no:3, isSub:true, title:'商品を伝える', h:'その商品が無いとき', when:'近い商品でも構いません',
+    body:()=> fSay({q:'でしたら、近い商品でも構いません。御社で今お出しできる類似品はございますか？'}),
+    branchLead:'◇ どうなりましたか？',
+    branches:[
+      {style:'go', bt:'✅ 類似品を出してもらえそう', desc:'クロージングへ', goto:'s4'},
+      {style:'warn', bt:'✖ 取り扱いが合わない', desc:'「見送り」で記録して終了', result:'見送り'}
+    ],
+    naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
   },
-
-  /* STEP3 派生：類似品 */
-  s3_alt(){
-    setTop("商品を伝える", 3);
-    document.getElementById('screen').innerHTML = `
-      <div class="step-title"><span class="step-num">3</span><h2>その商品が無いとき</h2></div>
-      <p class="step-when">近い商品でも構いません</p>
-      <div class="say"><span class="q">でしたら、近い商品でも構いません。御社で今お出しできる類似品はございますか？</span></div>
-      <p class="lead">◇ どうなりましたか？</p>
-      <div class="choices">
-        <button class="choice go" onclick="go('s4')"><span class="bt">✅ 類似品を出してもらえそう</span>クロージングへ <span class="arrow">→</span></button>
-        <button class="choice warn" onclick="finishWith('見送り')"><span class="bt">✖ 取り扱いが合わない</span>「見送り」で記録して終了</button>
-      </div>
-    `;
-    setActions([{label:"終了して記録", cls:"btn-ghost", onClick:abortPicker}]);
+  s4:{ no:4, title:'クロージング', h:'クロージング', when:'メールで見積り・資料をお願いする',
+    body:()=>
+      fSay({q:'それでは、その商品の卸価格・掛け率を含めて、メールでお見積りを頂戴できますでしょうか？'})
+      + fNote({bold:true, html:'※ すぐ見積りが出せない様子なら、まずは下のどれかでもOK'})
+      + fRebuts({variant:'indigo', items:[
+        {b:'① 製品ページURL', text:'公開ページのリンクでOK'},
+        {b:'② カタログPDF', text:'価格なしでもOK'},
+        {b:'③ 代表SKU 数点', text:'型番・仕様だけでもOK'}
+      ]}),
+    naviActions:[
+      {label:'次へ：情報を確認する →', cls:'btn-primary', go:'s5'},
+      {label:'終了', cls:'btn-ghost', abort:true}
+    ]
   },
-
-  /* --- STEP4 クロージング --- */
-  s4(){
-    setTop("クロージング", 4);
-    document.getElementById('screen').innerHTML = `
-      <div class="step-title"><span class="step-num">4</span><h2>クロージング</h2></div>
-      <p class="step-when">メールで見積り・資料をお願いする</p>
-
-      <div class="say"><span class="q">それでは、その商品の卸価格・掛け率を含めて、メールでお見積りを頂戴できますでしょうか？</span></div>
-
-      <p style="font-size:13px;color:var(--ink-soft);font-weight:700;margin:16px 0 8px;">※ すぐ見積りが出せない様子なら、まずは下のどれかでもOK</p>
-      <div class="rebuts">
-        <div class="rebut" style="background:var(--say-bg);color:var(--say-ink)"><b style="color:var(--indigo)">① 製品ページURL</b>公開ページのリンクでOK</div>
-        <div class="rebut" style="background:var(--say-bg);color:var(--say-ink)"><b style="color:var(--indigo)">② カタログPDF</b>価格なしでもOK</div>
-        <div class="rebut" style="background:var(--say-bg);color:var(--say-ink)"><b style="color:var(--indigo)">③ 代表SKU 数点</b>型番・仕様だけでもOK</div>
-      </div>
-    `;
-    setActions([
-      {label:"次へ：情報を確認する →", cls:"btn-primary", onClick:()=>go('s5')},
-      {label:"終了", cls:"btn-ghost", onClick:abortPicker}
-    ]);
+  s5:{ no:5, title:'情報確認', h:'情報確認（必ず取る）', when:'こちらを伝え、相手の情報を聞いて入力します',
+    body:()=> fSelfinfo() + fRecord(),
+    naviActions:[
+      {label:'次へ：お礼して終わる →', cls:'btn-primary', go:'s6'},
+      {label:'終了', cls:'btn-ghost', abort:true}
+    ]
   },
-
-  /* --- STEP5 情報確認 --- */
-  s5(){
-    setTop("情報確認", 5);
-    document.getElementById('screen').innerHTML = `
-      <div class="step-title"><span class="step-num">5</span><h2>情報確認（必ず取る）</h2></div>
-      <p class="step-when">こちらを伝え、相手の情報を聞いて入力します</p>
-
-      <div class="selfinfo">🗣 こちらの担当をお伝え：<b>${SELF.repName}</b>／メール <b>${SELF.email}</b>
-        <button class="copy" onclick="copyText('${SELF.email}')">メールをコピー</button></div>
-
-      <div class="field"><label>① 相手のお名前（漢字も確認）</label>
-        <input type="text" data-bind="contactName" value="${esc(cur.contactName)}" placeholder="例）佐藤 様"></div>
-      <div class="field"><label>② メールアドレス（復唱して確認）</label>
-        <input type="text" inputmode="email" data-bind="contactEmail" value="${esc(cur.contactEmail)}" placeholder="例）sato@example.co.jp">
-        <div class="hint">復唱して「お間違いないですか？」と確認しましょう。</div></div>
-      <div class="field"><label>③ 部署・役職</label>
-        <input type="text" data-bind="contactDept" value="${esc(cur.contactDept)}" placeholder="例）営業部 課長"></div>
-      <div class="field"><label>④ 返信用のお電話番号</label>
-        <input type="text" inputmode="tel" data-bind="contactPhone" value="${esc(cur.contactPhone)}" placeholder="例）03-xxxx-xxxx"></div>
-      <div class="field"><label>⑤ 送付の予定日</label>
-        <input type="text" data-bind="sendDate" value="${esc(cur.sendDate)}" placeholder="例）今週中／6月12日 など">
-        <div class="hint">「いつ頃ご送付いただけますか？」と聞きましょう。</div></div>
-    `;
-    setActions([
-      {label:"次へ：お礼して終わる →", cls:"btn-primary", onClick:()=>{ syncInputs(); go('s6'); }},
-      {label:"終了", cls:"btn-ghost", onClick:abortPicker}
-    ]);
-  },
-
-  /* --- STEP6 お礼 → 終話 --- */
-  s6(){
-    setTop("お礼 → 終話", 6);
-    document.getElementById('screen').innerHTML = `
-      <div class="step-title"><span class="step-num">6</span><h2>お礼 → 終話</h2></div>
-      <p class="step-when">最後まで丁寧に</p>
-      <div class="step-art">${OPERATOR_SVG}</div>
-      <div class="say" style="background:var(--green-bg);color:#21603f;border-color:#cfe6d8;">
-        <span class="q" style="color:var(--green)">本日は貴重なお時間をいただき、ありがとうございました。引き続きよろしくお願いいたします。失礼いたします。</span></div>
-
-      <div class="panel">
-        <h3 style="color:var(--indigo)">この架電のメモ（任意）</h3>
-        <div class="field"><textarea data-bind="note" placeholder="気づいたこと・次回の申し送りなど">${esc(cur.note)}</textarea></div>
-      </div>
-
-      <p style="font-size:13px;color:var(--ink-soft);">下のボタンで結果を記録します。送付の約束が取れていれば「成立」です。</p>
-    `;
-    setActions([
-      {label:"🎉 成立で記録して終了", cls:"btn-green", onClick:()=>{ syncInputs(); finishWith('成立'); }},
-      {label:"別の結果で記録", cls:"btn-ghost", onClick:()=>{ syncInputs(); abortPicker(); }}
-    ]);
+  s6:{ no:6, title:'お礼 → 終話', h:'お礼 → 終話', when:'最後まで丁寧に',
+    body:()=>
+      `<div class="step-art">${OPERATOR_SVG}</div>`
+      + fSay({green:true, q:'本日は貴重なお時間をいただき、ありがとうございました。引き続きよろしくお願いいたします。失礼いたします。'})
+      + `<div class="panel"><h3 style="color:var(--indigo)">この架電のメモ（任意）</h3>${fField({label:'',bind:'note',area:true,ph:'気づいたこと・次回の申し送りなど'})}</div>`
+      + fNote({html:'結果を記録します。送付の約束が取れていれば「成立」です。'}),
+    naviActions:[
+      {label:'🎉 成立で記録して終了', cls:'btn-green', finish:'成立'},
+      {label:'別の結果で記録', cls:'btn-ghost', abort:true}
+    ]
   }
 };
+
+/* --- ナビ型：1ノードを描画 --- */
+function naviRender(id){
+  const n = NODES[id];
+  setTop(n.title, n.no);
+  let html = `<div class="step-title"><span class="step-num">${n.no}</span><h2>${n.h}</h2></div>
+    <p class="step-when">${n.when}</p>` + n.body('navi');
+  if(n.naviExtra) html += n.naviExtra();
+  if(n.branchLead) html += `<p class="lead">${n.branchLead}</p>`;
+  if(n.branches){
+    html += `<div class="choices">` + n.branches.map((b,i)=>{
+      const cls = b.style==='go' ? 'choice go' : b.style==='warn' ? 'choice warn' : 'choice';
+      const arrow = b.goto ? '<span class="arrow">→</span>' : '';
+      return `<button class="${cls}" data-bi="${i}"><span class="bt">${b.bt}</span>${b.desc} ${arrow}</button>`;
+    }).join('') + `</div>`;
+  }
+  const screen = document.getElementById('screen');
+  screen.innerHTML = html;
+  if(n.branches){
+    screen.querySelectorAll('.choices .choice').forEach(btn=>{
+      const b = n.branches[+btn.dataset.bi];
+      btn.onclick = ()=>{ if(b.goto){ go(b.goto); } else if(b.result){ syncInputs(); finishWith(b.result); } };
+    });
+  }
+  setActions((n.naviActions||[]).map(a=>({
+    label:a.label, cls:a.cls,
+    onClick:()=>{
+      if(a.go){ syncInputs(); go(a.go); }
+      else if(a.finish){ syncInputs(); finishWith(a.finish); }
+      else if(a.abort){ abortPicker(); }
+      else if(a.back){ onTopLeft(); }
+    }
+  })));
+}
+
+/* --- ナビ型：事前準備の画面 --- */
+function prepRender(){
+  setTop("かける前の準備", 0);
+  document.getElementById('progressWrap').classList.remove('hidden');
+  document.getElementById('progressBar').style.width="0%";
+  document.getElementById('screen').innerHTML = `
+    <div class="step-title"><span class="step-num">📋</span><h2>かける前に</h2></div>
+    <p class="step-when">相手の会社名と、今回すすめる商品をメモしておきます（後で記録に残ります）。</p>
+    ${fSelfname()}
+    ${fField({label:'相手の会社名', bind:'company', ph:'例）〇〇商事 株式会社'})}
+    ${fMemo()}
+    ${fGoal()}
+  `;
+  setActions([
+    {label:"📞 架電スタート", cls:"btn-primary", onClick:()=>{ syncInputs(); go('s1'); }}
+  ]);
+}
+
+/* ナビ型の遷移テーブル */
+const STEPS = { prep: prepRender };
+['s1','s1_none','s1_absent','s2','s3','s3_alt','s4','s5','s6'].forEach(id=>{
+  STEPS[id] = ()=> naviRender(id);
+});
+
+/* --- スクロール型：全部を1ページに描画（中身は同じ body() を使用） --- */
+function subBranchInfo(branches){
+  return branches.map(b=>
+    `<p class="subline"><b>${b.bt}</b> … ${b.desc}</p>`).join('');
+}
+function scrollNode(id){
+  const n = NODES[id];
+  let h = `<div class="scroll-step">
+    <div class="step-title"><span class="step-num">${n.no}</span><h2>${n.h}</h2></div>
+    <p class="step-when">${n.when}</p>` + n.body('scroll');
+  if(n.branchLead) h += `<p class="lead">${n.branchLead}</p>`;
+  if(n.branches){
+    h += `<div class="choices">` + n.branches.map(b=>{
+      const cls = b.style==='go' ? 'binfo go' : b.style==='warn' ? 'binfo warn' : 'binfo';
+      let extra = '';
+      const sub = b.goto && NODES[b.goto] && NODES[b.goto].isSub ? NODES[b.goto] : null;
+      if(sub){
+        extra = `<div class="subblock">${sub.body('scroll')}`
+          + (sub.branchLead ? `<p class="subline" style="font-weight:700;color:var(--indigo)">${sub.branchLead}</p>` : '')
+          + (sub.branches ? subBranchInfo(sub.branches) : '')
+          + `</div>`;
+      }
+      return `<div class="${cls}"><span class="bt">${b.bt}</span>${b.desc}${extra}</div>`;
+    }).join('') + `</div>`;
+  }
+  h += `</div>`;
+  return h;
+}
+function renderScroll(){
+  currentStepId = null;
+  window.scrollTo(0,0);
+  document.getElementById('topTitle').textContent = 'トークスクリプト（全体）';
+  const ind = document.getElementById('stepInd');
+  ind.classList.remove('hidden'); ind.textContent = '📜 スクロール型';
+  document.getElementById('progressWrap').classList.add('hidden');
+  document.getElementById('topLeftBtn').textContent = '🏠 ホーム';
+  curStepNo = 0;
+
+  let html = `
+    <div class="step-title"><span class="step-num">📜</span><h2>架電トークスクリプト（全体）</h2></div>
+    <p class="step-when">上から順に進めます。🗣のセリフをそのまま読みます。<b>中身はナビ型と同じ</b>です。</p>
+
+    <div class="scroll-step">
+      <div class="step-title"><span class="step-num">📋</span><h2>かける前に</h2></div>
+      <p class="step-when">相手の会社名と、今回すすめる商品をメモします（記録に残ります）。</p>
+      ${fSelfname()}
+      ${fField({label:'相手の会社名', bind:'company', ph:'例）〇〇商事 株式会社'})}
+      ${fMemo()}
+      ${fGoal()}
+    </div>
+  `;
+  ['s1','s2','s3','s4','s5','s6'].forEach(id=>{ html += scrollNode(id); });
+
+  html += `
+    <div class="scroll-step">
+      <p class="lead" style="margin-top:0">通話が終わったら、結果を記録します</p>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 6px;">下のバーのボタンか、ここから選べます。</p>
+      <div class="result-grid">
+        <button class="rbtn g" onclick="syncInputs();finishWith('成立')">成立（送付OK）</button>
+        <button class="rbtn y" onclick="syncInputs();finishWith('見送り')">見送り</button>
+        <button class="rbtn y" onclick="syncInputs();finishWith('担当不在')">担当不在</button>
+        <button class="rbtn r" onclick="syncInputs();finishWith('受付拒否')">受付拒否</button>
+      </div>
+    </div>
+  `;
+
+  const screen = document.getElementById('screen');
+  screen.innerHTML = html;
+
+  // 商品名などを入力したら、参照表示をその場で更新
+  screen.addEventListener('input', ()=>{
+    syncInputs();
+    const pn = cur.productName || '〔商品名〕';
+    screen.querySelectorAll('.prodref').forEach(el=> el.textContent = pn);
+    screen.querySelectorAll('.refName').forEach(el=> el.textContent = cur.productName || '（上で記入）');
+    screen.querySelectorAll('.refSize').forEach(el=> el.textContent = cur.productSize || '—');
+    screen.querySelectorAll('.refRate').forEach(el=> el.textContent = cur.productRate || '—');
+  });
+
+  setActions([
+    {label:'🎉 成立で記録', cls:'btn-green', onClick:()=>{ syncInputs(); finishWith('成立'); }},
+    {label:'別の結果で記録', cls:'btn-ghost', onClick:()=>{ syncInputs(); abortPicker(); }}
+  ]);
+}
 
 /* ===================== 起動 ===================== */
 initAuth();
