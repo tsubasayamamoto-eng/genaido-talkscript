@@ -266,8 +266,27 @@
   .mode-card.go .mt{color:var(--coral);}
 
   /* Scroll mode */
-  .scroll-step{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin:0 0 12px;}
+  .scroll-step{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin:0;
+    transition:background .25s ease, border-color .25s ease;}
   .scroll-step .step-when{margin:0 0 12px 40px;}
+  .sstep-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+  .sstep-head .step-title{margin:2px 0;}
+  .donebtn{flex:0 0 auto;width:38px;height:38px;border-radius:50%;border:2px solid var(--line);
+    background:#fff;color:#cfc8ba;font-size:19px;font-weight:700;cursor:pointer;line-height:1;
+    display:flex;align-items:center;justify-content:center;transition:all .15s ease;}
+  .donebtn:active{transform:scale(.9);}
+  .scroll-step.done{background:var(--green-bg);border-color:var(--green);}
+  .scroll-step.done .step-num{background:var(--green);}
+  .scroll-step.done .donebtn{background:var(--green);border-color:var(--green);color:#fff;}
+  .scroll-step.done .step-when{color:#3f7a5d;}
+  .scroll-step.done .say{opacity:.9;}
+  @keyframes doneflash{0%{box-shadow:0 0 0 0 rgba(47,122,86,.5);}100%{box-shadow:0 0 0 16px rgba(47,122,86,0);}}
+  .scroll-step.flash{animation:doneflash .55s ease-out;}
+  /* flow connector */
+  .sconnect{width:3px;height:22px;background:var(--indigo-soft);margin:2px auto;border-radius:2px;opacity:.5;}
+  .sconnect::after{content:"";display:block;width:8px;height:8px;
+    border-right:3px solid var(--indigo-soft);border-bottom:3px solid var(--indigo-soft);
+    transform:rotate(45deg);margin:-4px auto 0;}
   .binfo{display:block;background:var(--card);border:1.5px solid var(--indigo-soft);border-radius:12px;
     padding:11px 13px;font-size:14.5px;color:var(--ink);line-height:1.5;}
   .binfo .bt{display:block;font-weight:700;font-size:14.5px;margin-bottom:2px;color:var(--indigo);}
@@ -778,7 +797,7 @@ function fProductSay(){
 const NODES = {
   s1:{ no:1, title:'受付突破', h:'受付突破', when:'最初に出た受付の方へ',
     body:()=>
-      fSay({q:`お世話になります。${SELF.company}の${selfShort(SELF.caller)}ですが、新規仕入れルートのご相談で、営業／卸窓口のご担当はお見えでしょうか？`})
+      fSay({q:`お世話になります。${SELF.company}の${selfShort(SELF.caller)}ですが、御社商品のお見積りをいただきたく、営業／卸窓口のご担当はお見えでしょうか？`})
       + fHelper({label:'「ご用件は？」と聞かれたら', html:'御社の商品の<b>お見積りの件</b>、とお伝えください。'})
       + fHelper({label:'「具体的には？」と聞かれたら', html:'弊社は愛知県で小売業をしており、自社ECショップで取扱い商品を増やしたく、ぜひ御社の商品を扱わせていただきたくご連絡しました。ご担当者におつなぎいただけますか？'})
       + fHelper({label:'「フォームから送って」と言われたら', html:'フォームから送れない資料のため、差し支えなければメールアドレスを教えていただけますか。<br><span style="color:var(--red)">→ それも断られたら「受付拒否」で記録。</span>'}),
@@ -948,14 +967,29 @@ function subBranchInfo(branches){
   return branches.map(b=>
     `<p class="subline"><b>${b.bt}</b> … ${b.desc}</p>`).join('');
 }
+/* チェック付きカードの枠 */
+function sCard(numLabel, title, when, inner){
+  return `<div class="scroll-step">
+    <div class="sstep-head">
+      <div class="step-title"><span class="step-num">${numLabel}</span><h2>${title}</h2></div>
+      <button class="donebtn" onclick="toggleDone(this)" title="読んだらチェック">✓</button>
+    </div>
+    <p class="step-when">${when}</p>
+    ${inner}
+  </div>`;
+}
+/* チェック切り替え（色が変わる＋フラッシュ） */
+function toggleDone(btn){
+  const card = btn.closest('.scroll-step');
+  const done = card.classList.toggle('done');
+  if(done){ card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash'); }
+}
 function scrollNode(id){
   const n = NODES[id];
-  let h = `<div class="scroll-step">
-    <div class="step-title"><span class="step-num">${n.no}</span><h2>${n.h}</h2></div>
-    <p class="step-when">${n.when}</p>` + n.body('scroll');
-  if(n.branchLead) h += `<p class="lead">${n.branchLead}</p>`;
+  let inner = n.body('scroll');
+  if(n.branchLead) inner += `<p class="lead">${n.branchLead}</p>`;
   if(n.branches){
-    h += `<div class="choices">` + n.branches.map(b=>{
+    inner += `<div class="choices">` + n.branches.map(b=>{
       const cls = b.style==='go' ? 'binfo go' : b.style==='warn' ? 'binfo warn' : 'binfo';
       let extra = '';
       const sub = b.goto && NODES[b.goto] && NODES[b.goto].isSub ? NODES[b.goto] : null;
@@ -968,8 +1002,7 @@ function scrollNode(id){
       return `<div class="${cls}"><span class="bt">${b.bt}</span>${b.desc}${extra}</div>`;
     }).join('') + `</div>`;
   }
-  h += `</div>`;
-  return h;
+  return sCard(n.no, n.h, n.when, inner);
 }
 function renderScroll(){
   currentStepId = null;
@@ -981,23 +1014,19 @@ function renderScroll(){
   document.getElementById('topLeftBtn').textContent = '🏠 ホーム';
   curStepNo = 0;
 
-  let html = `
-    <div class="step-title"><span class="step-num">📜</span><h2>架電トークスクリプト（全体）</h2></div>
-    <p class="step-when">上から順に進めます。🗣のセリフをそのまま読みます。<b>中身はナビ型と同じ</b>です。</p>
+  const intro = `
+    <div class="step-title"><span class="step-num">📜</span><h2>架電トークスクリプト（フロー）</h2></div>
+    <p class="step-when">上から順に。🗣のセリフを読み、済んだら右の<b>✓</b>を押すと色が変わります。<b>中身はナビ型と同じ</b>です。</p>`;
 
-    <div class="scroll-step">
-      <div class="step-title"><span class="step-num">📋</span><h2>かける前に</h2></div>
-      <p class="step-when">相手の会社名と、今回すすめる商品をメモします（記録に残ります）。</p>
-      ${fSelfname()}
-      ${fField({label:'相手の会社名', bind:'company', ph:'例）〇〇商事 株式会社'})}
-      ${fMemo()}
-      ${fGoal()}
-    </div>
-  `;
-  ['s1','s2','s3','s4','s5','s6'].forEach(id=>{ html += scrollNode(id); });
+  const prepInner = `${fSelfname()}
+    ${fField({label:'相手の会社名', bind:'company', ph:'例）〇〇商事 株式会社'})}
+    ${fMemo()}
+    ${fGoal()}`;
 
-  html += `
-    <div class="scroll-step">
+  const cards = [ sCard('📋','かける前に','相手の会社名と、今回すすめる商品をメモします（記録に残ります）。', prepInner) ];
+  ['s1','s2','s3','s4','s5','s6'].forEach(id=>{ cards.push(scrollNode(id)); });
+
+  const resultCard = `<div class="scroll-step">
       <p class="lead" style="margin-top:0">通話が終わったら、結果を記録します</p>
       <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 6px;">下のバーのボタンか、ここから選べます。</p>
       <div class="result-grid">
@@ -1006,8 +1035,12 @@ function renderScroll(){
         <button class="rbtn y" onclick="syncInputs();finishWith('担当不在')">担当不在</button>
         <button class="rbtn r" onclick="syncInputs();finishWith('受付拒否')">受付拒否</button>
       </div>
-    </div>
-  `;
+    </div>`;
+
+  const html = intro
+    + cards.join('<div class="sconnect"></div>')
+    + '<div class="sconnect"></div>'
+    + resultCard;
 
   const screen = document.getElementById('screen');
   screen.innerHTML = html;
