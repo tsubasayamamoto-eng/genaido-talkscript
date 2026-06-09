@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>玄愛堂 トークスクリプト（架電ナビ）</title>
+<style>
+  :root{
+    --paper:#FBF9F4;
+    --ink:#233044;
+    --ink-soft:#5B6675;
+    --indigo:#2E4374;
+    --indigo-soft:#7488B9;
+    --coral:#E26B43;
+    --coral-bg:#FBE9E0;
+    --say-bg:#EAF1FA;
+    --say-ink:#2B4570;
+    --branch-bg:#FBF3E0;
+    --branch-ink:#8A6420;
+    --green:#2F7A56;
+    --green-bg:#E5F2EA;
+    --red:#C0492F;
+    --red-bg:#FBE6E1;
+    --line:#E5DFD3;
+    --card:#FFFFFF;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+
+  /* Top bar */
+  .topbar{
+    position:sticky;top:0;z-index:20;
+    background:var(--indigo);color:#fff;
+    padding:12px 16px;display:flex;align-items:center;gap:12px;
+    box-shadow:0 2px 8px rgba(35,48,68,.12);
+  }
+  .topbar .ttl{font-weight:700;font-size:15px;flex:1;letter-spacing:.02em;}
+  .topbar .step-ind{font-size:12px;opacity:.85;background:rgba(255,255,255,.16);
+    padding:3px 10px;border-radius:999px;white-space:nowrap;}
+  .iconbtn{
+    background:rgba(255,255,255,.14);border:none;color:#fff;
+    font-size:13px;font-weight:700;padding:7px 12px;border-radius:10px;cursor:pointer;
+  }
+  .iconbtn:active{background:rgba(255,255,255,.28);}
+
+  /* Progress */
+  .progress{height:5px;background:#dfe3ec;}
+  .progress > i{display:block;height:100%;background:var(--coral);transition:width .25s ease;border-radius:0 3px 3px 0;}
+
+  .screen{flex:1;padding:18px 16px 120px;}
+  .hidden{display:none !important;}
+
+  /* Headings inside step */
+  .step-num{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:30px;height:30px;border-radius:50%;background:var(--indigo);color:#fff;
+    font-weight:700;font-size:15px;margin-right:10px;flex:0 0 auto;
+  }
+  .step-title{display:flex;align-items:center;margin:4px 0 2px;}
+  .step-title h2{font-size:20px;margin:0;color:var(--indigo);font-weight:700;}
+  .step-when{color:var(--ink-soft);font-size:13px;margin:0 0 16px 40px;}
+
+  /* Say bubble — the main thing to read */
+  .say{
+    background:var(--say-bg);border-radius:16px;
+    padding:16px 16px 16px 46px;position:relative;margin:12px 0;
+    color:var(--say-ink);font-size:17px;line-height:1.85;
+    border:1px solid #d4e0f1;
+  }
+  .say::before{content:"🗣";position:absolute;left:15px;top:14px;font-size:20px;}
+  .say .q{font-weight:700;color:var(--indigo);}
+  .say .small{font-size:13.5px;color:var(--ink-soft);display:block;margin-top:6px;font-weight:400;}
+
+  .lead{font-size:13px;color:var(--ink-soft);font-weight:700;margin:18px 0 8px;}
+
+  /* Branch buttons (relpy choices) */
+  .choices{display:flex;flex-direction:column;gap:10px;margin:6px 0;}
+  .choice{
+    display:block;width:100%;text-align:left;cursor:pointer;
+    background:var(--card);border:2px solid var(--indigo-soft);border-radius:14px;
+    padding:14px 16px;font-size:15.5px;color:var(--ink);font-family:inherit;line-height:1.55;
+    transition:transform .05s ease, box-shadow .15s ease;
+  }
+  .choice:active{transform:scale(.99);}
+  .choice .bt{display:block;font-weight:700;font-size:15px;margin-bottom:2px;}
+  .choice.go{border-color:var(--green);background:var(--green-bg);}
+  .choice.go .bt{color:var(--green);}
+  .choice.warn{border-color:var(--coral);}
+  .choice.warn .bt{color:var(--coral);}
+  .choice .arrow{float:right;color:var(--indigo-soft);font-weight:700;}
+
+  /* Helper accordions: "if they ask..." */
+  .helper{margin:10px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;}
+  .helper > summary{
+    cursor:pointer;list-style:none;padding:11px 14px;font-size:14px;font-weight:700;
+    color:var(--branch-ink);background:var(--branch-bg);display:flex;align-items:center;gap:8px;
+  }
+  .helper > summary::-webkit-details-marker{display:none;}
+  .helper > summary::before{content:"❓";}
+  .helper[open] > summary::before{content:"💬";}
+  .helper .hbody{padding:12px 14px;font-size:14.5px;color:var(--ink);}
+
+  /* Rebuttal cards */
+  .rebuts{display:flex;flex-direction:column;gap:8px;margin:8px 0;}
+  .rebut{background:var(--branch-bg);border-radius:12px;padding:11px 14px;font-size:14px;color:#6f4f12;}
+  .rebut b{display:block;color:#5a3f0e;margin-bottom:3px;}
+
+  /* Memo / record fields */
+  .field{margin:12px 0;}
+  .field label{display:block;font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:5px;}
+  .field input, .field textarea{
+    width:100%;border:2px solid var(--line);border-radius:11px;
+    padding:11px 12px;font-size:16px;font-family:inherit;color:var(--ink);background:#fff;
+  }
+  .field input:focus, .field textarea:focus{outline:none;border-color:var(--indigo-soft);}
+  .field .hint{font-size:12px;color:var(--ink-soft);margin-top:4px;}
+  .field textarea{min-height:64px;resize:vertical;}
+
+  .panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0;}
+  .panel h3{margin:0 0 4px;font-size:15px;color:var(--coral);}
+  .panel.indigo h3{color:var(--indigo);}
+  .panel .ph{font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;}
+
+  .selfinfo{
+    background:var(--green-bg);border-radius:12px;padding:12px 14px;margin:12px 0;
+    font-size:15px;color:#21603f;border:1px solid #cfe6d8;
+  }
+  .selfinfo b{color:var(--green);}
+  .selfinfo .copy{margin-left:6px;font-size:12px;background:var(--green);color:#fff;border:none;
+    padding:3px 9px;border-radius:8px;cursor:pointer;font-weight:700;}
+
+  .checklist{list-style:none;padding:0;margin:6px 0 0;}
+  .checklist li{position:relative;padding:7px 0 7px 28px;font-size:14.5px;border-bottom:1px dashed var(--line);}
+  .checklist li:last-child{border-bottom:none;}
+  .checklist li::before{content:"✓";position:absolute;left:4px;top:7px;color:var(--green);font-weight:700;}
+
+  /* Bottom action bar */
+  .actionbar{
+    position:fixed;left:0;right:0;bottom:0;z-index:30;
+    background:linear-gradient(180deg, rgba(251,249,244,0) 0%, var(--paper) 28%);
+    padding:14px 16px calc(14px + env(safe-area-inset-bottom));
+  }
+  .actionbar .inner{max-width:560px;margin:0 auto;display:flex;gap:10px;}
+  .btn{
+    flex:1;border:none;border-radius:14px;padding:16px 18px;font-size:16.5px;font-weight:700;
+    cursor:pointer;font-family:inherit;line-height:1.3;
+  }
+  .btn:active{transform:scale(.99);}
+  .btn-primary{background:var(--coral);color:#fff;box-shadow:0 4px 12px rgba(226,107,67,.32);}
+  .btn-green{background:var(--green);color:#fff;box-shadow:0 4px 12px rgba(47,122,86,.3);}
+  .btn-ghost{flex:0 0 auto;background:#fff;border:2px solid var(--line);color:var(--ink-soft);}
+
+  /* Home */
+  .home-hero{
+    background:var(--indigo);color:#fff;border-radius:20px;padding:22px 20px;margin:8px 0 18px;
+  }
+  .home-hero .eyebrow{font-size:11px;letter-spacing:.18em;color:#FFD9C8;font-weight:700;margin:0 0 6px;}
+  .home-hero h1{font-size:23px;margin:0 0 4px;font-weight:700;}
+  .home-hero p{margin:6px 0 0;font-size:13.5px;color:#E7ECF6;line-height:1.7;}
+  .start-btn{
+    width:100%;margin-top:16px;background:var(--coral);color:#fff;border:none;border-radius:14px;
+    padding:18px;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(226,107,67,.4);
+  }
+  .start-btn:active{transform:scale(.99);}
+
+  .sec-head{display:flex;align-items:center;justify-content:space-between;margin:22px 4px 10px;}
+  .sec-head h3{font-size:15px;margin:0;color:var(--indigo);}
+  .sec-head .tools{display:flex;gap:8px;}
+  .minibtn{font-size:12.5px;font-weight:700;border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:6px 11px;border-radius:9px;cursor:pointer;}
+  .minibtn:active{background:#f0ede6;}
+
+  .rec{
+    background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:10px;
+    display:flex;align-items:center;gap:12px;
+  }
+  .rec .recmain{flex:1;min-width:0;}
+  .rec .recco{font-weight:700;font-size:15px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .rec .recsub{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+  .badge{font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;}
+  .badge.成立{background:var(--green-bg);color:var(--green);}
+  .badge.見送り{background:#EEE;color:#777;}
+  .badge.担当不在{background:var(--branch-bg);color:var(--branch-ink);}
+  .badge.受付拒否{background:var(--red-bg);color:var(--red);}
+  .badge.途中終了{background:#EEE;color:#777;}
+  .rec .del{background:none;border:none;color:#c9bda7;font-size:20px;cursor:pointer;padding:2px 4px;line-height:1;}
+  .empty{text-align:center;color:var(--ink-soft);font-size:13.5px;padding:24px 10px;}
+
+  /* Result picker (abort / finish) */
+  .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0;}
+  .result-grid.solo{grid-template-columns:1fr;}
+  .rbtn{
+    border:2px solid var(--line);background:#fff;border-radius:13px;padding:14px;font-size:15px;font-weight:700;
+    cursor:pointer;font-family:inherit;color:var(--ink);
+  }
+  .rbtn:active{transform:scale(.99);}
+  .rbtn.g{border-color:var(--green);color:var(--green);background:var(--green-bg);}
+  .rbtn.r{border-color:var(--red);color:var(--red);background:var(--red-bg);}
+  .rbtn.y{border-color:#C9B79A;color:var(--branch-ink);background:var(--branch-bg);}
+
+  .modal-back{position:fixed;inset:0;background:rgba(35,48,68,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center;}
+  .modal{background:var(--paper);width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));}
+  .modal h3{margin:2px 0 4px;font-size:18px;color:var(--indigo);}
+  .modal p{margin:0 0 14px;font-size:13.5px;color:var(--ink-soft);}
+
+  .toast{
+    position:fixed;left:50%;bottom:96px;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:11px 18px;border-radius:12px;font-size:14px;font-weight:700;
+    z-index:60;opacity:0;transition:opacity .2s ease;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25);
+  }
+  .toast.show{opacity:1;}
+
+  .foot{text-align:center;color:var(--ink-soft);font-size:11.5px;margin:26px 4px 0;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <button class="iconbtn" id="topLeftBtn" onclick="onTopLeft()">🏠 ホーム</button>
+    <div class="ttl" id="topTitle">トークスクリプト</div>
+    <div class="step-ind hidden" id="stepInd"></div>
+  </div>
+  <div class="progress" id="progressWrap"><i id="progressBar" style="width:0%"></i></div>
+
+  <!-- SCREEN AREA -->
+  <div class="screen" id="screen"></div>
+
+  <!-- BOTTOM ACTION BAR -->
+  <div class="actionbar hidden" id="actionbar"><div class="inner" id="actionInner"></div></div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== データ（玄愛堂 固定スクリプト） ===================== */
+const SELF = {
+  company: "株式会社玄愛堂（ゲンアイドウ）",
+  caller: "熊谷（クマガイ）",
+  repName: "山本（やまもと）",
+  email: "tsubasayamamoto@genaido.net"
+};
+
+const STORE_KEY = "genaido_talk_records_v1";
+
+/* 現在の架電の入力状態 */
+let cur = null;
+function newCall(){
+  return {
+    id: String(Date.now()),
+    createdAt: new Date().toISOString(),
+    company:"", productName:"", productSize:"", productRate:"",
+    contactName:"", contactEmail:"", contactDept:"", contactPhone:"", sendDate:"",
+    result:"", note:""
+  };
+}
+
+/* 画面の流れ。id順ではなく next()で遷移 */
+let stepStack = [];        // 戻る用の履歴
+const TOTAL_STEPS = 6;     // 進捗バー用のだいたいの段階数
+let curStepNo = 0;         // 進捗表示用
+
+/* ===================== 保存まわり ===================== */
+function loadRecords(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+  catch(e){ return []; }
+}
+function saveRecords(list){ localStorage.setItem(STORE_KEY, JSON.stringify(list)); }
+function saveCurrent(result){
+  cur.result = result;
+  cur.finishedAt = new Date().toISOString();
+  const list = loadRecords();
+  list.unshift(cur);
+  saveRecords(list);
+}
+
+/* ===================== 小道具 ===================== */
+function esc(s){ return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1600);
+}
+function syncInputs(){
+  // 画面上の入力欄を cur に反映
+  document.querySelectorAll('[data-bind]').forEach(el=>{
+    cur[el.getAttribute('data-bind')] = el.value;
+  });
+}
+function copyText(txt){
+  navigator.clipboard?.writeText(txt).then(()=>toast("コピーしました"),()=>toast("コピーできませんでした"));
+}
+
+/* ===================== トップバー / 進捗 ===================== */
+function setTop(title, stepNo){
+  document.getElementById('topTitle').textContent = title;
+  const ind = document.getElementById('stepInd');
+  const left = document.getElementById('topLeftBtn');
+  if(stepNo){
+    ind.classList.remove('hidden');
+    ind.textContent = "STEP " + stepNo + " / " + TOTAL_STEPS;
+    document.getElementById('progressBar').style.width = Math.round(stepNo/TOTAL_STEPS*100)+"%";
+    document.getElementById('progressWrap').classList.remove('hidden');
+    left.textContent = "← 戻る";
+  }else{
+    ind.classList.add('hidden');
+    document.getElementById('progressWrap').classList.add('hidden');
+    left.textContent = "🏠 ホーム";
+  }
+  curStepNo = stepNo || 0;
+}
+function onTopLeft(){
+  if(curStepNo>0 && stepStack.length>0){
+    syncInputs();
+    const prev = stepStack.pop();
+    renderStep(prev, true);
+  }else{
+    goHome();
+  }
+}
+
+/* ===================== アクションバー ===================== */
+function setActions(buttons){
+  const bar=document.getElementById('actionbar'), inner=document.getElementById('actionInner');
+  if(!buttons || !buttons.length){ bar.classList.add('hidden'); inner.innerHTML=""; return; }
+  bar.classList.remove('hidden');
+  inner.innerHTML = buttons.map((b,i)=>
+    `<button class="btn ${b.cls||'btn-primary'}" data-ai="${i}">${b.label}</button>`).join('');
+  inner.querySelectorAll('button').forEach(btn=>{
+    btn.onclick = ()=> buttons[+btn.dataset.ai].onClick();
+  });
+}
+
+/* ===================== 画面遷移 ===================== */
+function go(stepId){
+  syncInputs();
+  if(curStepNo>0) stepStack.push(currentStepId);
+  renderStep(stepId);
+}
+let currentStepId = null;
+function renderStep(stepId, isBack){
+  currentStepId = stepId;
+  window.scrollTo(0,0);
+  STEPS[stepId]();
+}
+
+/* ===================== ホーム ===================== */
+function goHome(){
+  cur=null; stepStack=[]; currentStepId=null;
+  setTop("トークスクリプト", 0);
+  setActions(null);
+  const records = loadRecords();
+  const today = new Date().toISOString().slice(0,10);
+  const todayCount = records.filter(r=>(r.finishedAt||r.createdAt||"").slice(0,10)===today).length;
+  const seikai = records.filter(r=>r.result==="成立").length;
+
+  let recHtml;
+  if(records.length===0){
+    recHtml = `<div class="empty">まだ記録はありません。<br>上のボタンから架電を始めましょう。</div>`;
+  }else{
+    recHtml = records.map(r=>{
+      const t = new Date(r.finishedAt||r.createdAt);
+      const ts = `${t.getMonth()+1}/${t.getDate()} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+      const co = r.company || "（会社名なし）";
+      const sub = [r.productName, r.contactName?("→"+r.contactName):"" ].filter(Boolean).join("　");
+      return `<div class="rec">
+        <div class="recmain">
+          <div class="recco">${esc(co)}</div>
+          <div class="recsub">${ts}${sub?("　"+esc(sub)):""}</div>
+        </div>
+        <span class="badge ${r.result||'途中終了'}">${r.result||'途中終了'}</span>
+        <button class="del" title="削除" onclick="delRecord('${r.id}')">×</button>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('screen').innerHTML = `
+    <div class="home-hero">
+      <p class="eyebrow">株式会社玄愛堂 ｜ 架電ナビ</p>
+      <h1>商品問い合わせ トークスクリプト</h1>
+      <p>ボタンを押して進むだけ。表示された<b>🗣のセリフをそのまま読めば</b>大丈夫です。</p>
+      <button class="start-btn" onclick="startCall()">📞 新しい架電を始める</button>
+    </div>
+
+    <div class="sec-head">
+      <h3>架電の記録</h3>
+      <div class="tools">
+        <button class="minibtn" onclick="exportCSV()">⬇ CSV出力</button>
+      </div>
+    </div>
+    <div style="font-size:12.5px;color:var(--ink-soft);margin:0 4px 12px;">
+      今日：${todayCount}件　／　累計の成立：${seikai}件
+    </div>
+    ${recHtml}
+
+    <p class="foot">株式会社玄愛堂 ／ 商品問い合わせ 架電ナビ（パート様用）<br>記録はこの端末のブラウザ内にのみ保存されます。</p>
+  `;
+}
+
+function delRecord(id){
+  if(!confirm("この記録を削除しますか？")) return;
+  saveRecords(loadRecords().filter(r=>r.id!==id));
+  goHome();
+}
+
+function exportCSV(){
+  const list = loadRecords();
+  if(list.length===0){ toast("記録がありません"); return; }
+  const cols = [
+    ["createdAt","日時"],["company","会社名"],["productName","商品名"],
+    ["productSize","容量・サイズ"],["productRate","希望掛け率"],
+    ["contactName","担当者名"],["contactDept","部署・役職"],
+    ["contactEmail","メール"],["contactPhone","電話"],["sendDate","送付予定"],
+    ["result","結果"],["note","メモ"]
+  ];
+  const head = cols.map(c=>c[1]).join(",");
+  const rows = list.map(r=> cols.map(c=>{
+    let v = c[0]==="createdAt" ? new Date(r.finishedAt||r.createdAt).toLocaleString('ja-JP') : (r[c[0]]||"");
+    v = String(v).replace(/"/g,'""');
+    return /[",\n]/.test(v) ? `"${v}"` : v;
+  }).join(",")).join("\r\n");
+  const csv = "﻿" + head + "\r\n" + rows;
+  const blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download="玄愛堂_架電記録_"+new Date().toISOString().slice(0,10)+".csv";
+  a.click();
+  toast("CSVを書き出しました");
+}
+
+/* ===================== 架電スタート ===================== */
+function startCall(){
+  cur = newCall();
+  stepStack = [];
+  renderStep('prep');
+}
+
+/* ===================== 結果を選んで終了（中断ピッカー） ===================== */
+function openResultPicker(opts){
+  // opts: {title, desc, choices:[{label,result,cls}]}
+  syncInputs();
+  const back=document.createElement('div'); back.className='modal-back';
+  back.innerHTML = `<div class="modal">
+    <h3>${opts.title}</h3>
+    <p>${opts.desc||"結果を選ぶと記録に残ります。"}</p>
+    <div class="result-grid ${opts.choices.length===1?'solo':''}">
+      ${opts.choices.map((c,i)=>`<button class="rbtn ${c.cls||''}" data-i="${i}">${c.label}</button>`).join('')}
+    </div>
+    <div style="margin-top:12px;"><button class="rbtn" data-cancel="1" style="width:100%">キャンセル（戻る）</button></div>
+  </div>`;
+  back.addEventListener('click',e=>{ if(e.target===back) back.remove(); });
+  back.querySelector('[data-cancel]').onclick=()=>back.remove();
+  back.querySelectorAll('.result-grid .rbtn').forEach(b=>{
+    b.onclick=()=>{ back.remove(); finishWith(opts.choices[+b.dataset.i].result); };
+  });
+  document.body.appendChild(back);
+}
+function finishWith(result){
+  saveCurrent(result);
+  toast(result==="成立" ? "成立で記録しました 🎉" : "「"+result+"」で記録しました");
+  goHome();
+}
+// どのステップからでも呼べる「中断して結果記録」
+function abortPicker(){
+  openResultPicker({
+    title:"架電を終了して記録",
+    desc:"今回の結果を選んでください。",
+    choices:[
+      {label:"成立（送付OK）",result:"成立",cls:"g"},
+      {label:"見送り",result:"見送り",cls:"y"},
+      {label:"担当不在",result:"担当不在",cls:"y"},
+      {label:"受付拒否",result:"受付拒否",cls:"r"},
+      {label:"途中終了",result:"途中終了",cls:""}
+    ]
+  });
+}
+
+/* ===================== 各ステップの中身 ===================== */
+const STEPS = {
+
+  /* --- 事前準備 --- */
+  prep(){
+    setTop("かける前の準備", 0);
+    document.getElementById('progressWrap').classList.remove('hidden');
+    document.getElementById('progressBar').style.width="0%";
+    document.getElementById('screen').innerHTML = `
+      <div class="step-title"><span class="step-num">📋</span><h2>かける前に</h2></div>
+      <p class="step-when">相手の会社名と、今回すすめる商品をメモしておきます（後で記録に残ります）。</p>
+
+      <div class="panel indigo">
+        <h3>自分の名乗り（変わりません）</h3>
+        <p class="ph" style="margin:0">「${SELF.company}の${SELF.caller}」と名乗ります。</p>
+      </div>
+
+      <div class="field">
+        <label>相手の会社名</label>
+        <input type="text" data-bind="company" value="${esc(cur.company)}" placeholder="例）〇〇商事 株式会社">
+      </div>
+
+      <div class="panel">
+        <h3>📝 今回お伝えする商品</h3>
+        <p class="ph">事前にリストで決めておき、こちらから指名して伝えます。</p>
+        <div class="field"><label>商品名</label>
+          <input type="text" data-bind="productName" value="${esc(cur.productName)}" placeholder="例）〇〇クリーム 50g"></div>
+        <div class="field"><label>容量・サイズ</label>
+          <input type="text" data-bind="productSize" value="${esc(cur.productSize)}" placeholder="例）50g／Mサイズ など"></div>
+        <div class="field"><label>希望掛け率</label>
+          <input type="text" data-bind="productRate" value="${esc(cur.productRate)}" placeholder="例）60% など"></div>
+      </div>
+
+      <p style="font-size:13px;color:var(--ink-soft);">ゴール＝<b>商品名を伝える → メールで見積り・カタログをもらう</b>。<br>断られても、すぐ切らずに切り返してから次へ進みます。</p>
+    `;
+    setActions([
+      {label:"📞 架電スタート", cls:"btn-primary", onClick:()=>{ syncInputs(); go('s1'); }}
+    ]);
+  },
+
+  /* --- STEP1 受付突破 --- */
+  s1(){
+    setTop("受付突破", 1);
+    document.getElementById('screen').innerHTML = `
+      <div class="step-title"><span class="step-num">1</span><h2>受付突破</h2></div>
+      <p class="step-when">最初に出た受付の方へ</p>
+
+      <div class="say"><span class="q">お世話になります。${SELF.company}の${SELF.caller.split('（')[0]}ですが、新規仕入れルートのご相談で、営業／卸窓口のご担当はお見えでしょうか？</span></div>
+
+      <details class="helper"><summary>「ご用件は？」と聞かれたら</summary>
+        <div class="hbody">御社の商品の<b>お見積りの件</b>、とお伝えください。</div></details>
+      <details class="helper"><summary>「具体的には？」と聞かれたら</summary>
+        <div class="hbody">弊社は愛知県で小売業をしており、自社ECショップで取扱い商品を増やしたく、ぜひ御社の商品を扱わせていただきたくご連絡しました。ご担当者におつなぎいただけますか？</div></details>
+      <details class="helper"><summary>「フォームから送って」と言われたら</summary>
+        <div class="hbody">フォームから送れない資料のため、差し支えなければメールアドレスを教えていただけますか。<br><span style="color:var(--red)">→ それも断られたら下の「受付拒否」で記録。</span></div></details>
+
+      <p class="lead">◇ 相手の返事は？</p>
+      <div class="choices">
+        <button class="choice go" onclick="go('s2')">
+          <span class="bt">✅ 担当者に代わってもらえた</span>そのまま担当者と話すへ <span class="arrow">→</span></button>
+        <button class="choice" onclick="go('s1_none')">
+          <span class="bt">🔁 担当はいない と言われた</span>切り返しのセリフを見る <span class="arrow">→</span></button>
+        <button class="choice warn" onclick="go('s1_absent')">
+          <span class="bt">⏰ 担当者は不在だった</span>戻り時間をメモする <span class="arrow">→</span></button>
+      </div>
+    `;
+    setActions([
+      {label:"終了して記録", cls:"btn-ghost", onClick:abortPicker}
+    ]);
+  },
+
+  /* STEP1 派生：担当いない */
+  s1_none(){
+    setTop("受付突破", 1);
+    document.getElementById('screen').innerHTML = `
+      <div class="step-title"><span class="step-num">1</span><h2>「担当はいない」と言われたら</h2></div>
+      <p class="step-when">まずこのセリフで切り返します</p>
+      <div class="say"><span class="q">それであれば、こちらの件でお話のわかる方におつなぎいただけますか？</span></div>
+      <p class="lead">◇ つながりましたか？</p>
+      <div class="choices">
+        <button class="choice go" onclick="go('s2')"><span class="bt">✅ つながった</span>担当者と話すへ <span class="arrow">→</span></button>
+        <button class="choice warn" onclick="finishWith('受付拒否')"><span class="bt">✖ それでも断られた</span>「受付拒否」で記録して終了</button>
+      </div>
+    `;
+    setActions([{label:"終了して記録", cls:"btn-ghost", onClick:abortPicker}]);
+  },
+
+  /* STEP1 派生：不在 */
+  s1_absent(){
+    setTop("受付突破", 1);
+    document.getElementById('screen').innerHTML = `
+      <div class="step-title"><span class="step-num">1</span><h2>担当者が不在のとき</h2></div>
+      <p class="step-when">戻り時間を聞いてメモします</p>
+      <div class="say"><span class="q">承知しました。普段は午前10時／午後3時、どちらが社内にお見えでしょうか？</span></div>
+      <div class="field"><label>戻り時間・再架電メモ</label>
+        <textarea data-bind="note" placeholder="例）明日 午後3時ごろ戻り／〇〇様あて">${esc(cur.note)}</textarea></div>
+    `;
+    setActions([
+      {label:"「担当不在」で記録して終了", cls:"btn-primary", onClick:()=>{ syncInputs(); finishWith('担当不在'); }},
+      {label:"戻る", cls:"btn-ghost", onClick:onTopLeft}
+    ]);
+  },
+
+  /* --- STEP2 担当者と話す --- */
+  s2(){
+    setTop("担当者と話す", 2);
+    document.getElementById('screen').innerHTML = `
+      <div class="step-title"><span class="step-num">2</span><h2>担当者と話す</h2></div>
+      <p class="step-when">ご本人が電話口に出たら</p>
+
+      <div class="say"><span class="q">お忙しいところ恐れ入ります。${SELF.company.split('（')[0]}の${SELF.caller.split('（')[0]}と申します。</span>
+      <span class="small">弊社は自社でECショップを運営しているのですが、お客様から「取り扱い商品の幅をもっと広げてほしい」という声が増え、ラインナップを大幅に拡大することにしました。そこでぜひ御社の商品を<b>新たな仕入れ候補</b>として検討させていただきたく、商品情報を拝見できればと思いご連絡しました。</span></div>
+
+      <p class="lead">◇ 断られたら（下のどれかで切り返してそのまま続ける）</p>
+      <div class="rebuts">
+        <div class="rebut"><b>「結構です」</b>今すぐ必要ないとは思いますが、同じ商材を扱うお客様も弊社経由で販売数が伸びた実績がありまして〜</div>
+        <div class="rebut"><b>「資料・サイトがない」</b>綺麗な資料でなくて大丈夫です。普段お使いの商品リストや価格表（Excel）でも構いません〜</div>
+        <div class="rebut"><b>「大量・現金じゃないと無理」</b>無理なロットはお願いしません。小ロットのお試しから、お支払いも御社の規定に合わせます〜</div>
+      </div>
+    `;
+    setActions([
+      {label:"次へ：狙う商品を伝える →", cls:"btn-primary", onClick:()=>go('s3')},
+      {label:"終了", cls:"btn-ghost", onClick:abortPicker}
+    ]);
+  },
+
+  /* --- STEP3 商品指名 --- */
+  s3(){
+    setTop("商品を伝える", 3);
+    const p1 = cur.productName ? esc(cur.productName) : "〔商品名〕";
+    document.getElementById('screen').innerHTML = `
+      <div class="step-title"><span class="step-num">3</span><h2>★ 狙う商品を伝える</h2></div>
+      <p class="step-when">事前に決めた商品名を、こちらから指名します</p>
+
+      <div class="panel">
+        <h3>📝 今回お伝えする商品</h3>
+        <div class="field"><label>商品名</label>
+          <input type="text" data-bind="productName" value="${esc(cur.productName)}" placeholder="商品名"></div>
+        <div class="field"><label>容量・サイズ</label>
+          <input type="text" data-bind="productSize" value="${esc(cur.productSize)}" placeholder="容量・サイズ"></div>
+        <div class="field"><label>希望掛け率</label>
+          <input type="text" data-bind="productRate" value="${esc(cur.productRate)}" placeholder="希望掛け率"></div>
+      </div>
+
+      <div class="say"><span class="q">実は、御社の「${p1}」という商品を、ぜひ弊社で取り扱わせていただきたく思っておりまして、こちらのお見積りを頂戴できますでしょうか？</span>
+      <span class="small">（複数あれば）あわせて別の商品なども、お見積りいただけますと幸いです。</span></div>
+
+      <details class="helper"><summary>「なぜその商品を？」と聞かれたら</summary>
+        <div class="hbody">ECでその商品の需要が伸びており、安定して仕入れられる先を探しておりまして〜</div></details>
+
+      <p style="font-size:12.5px;color:var(--ink-soft);">※「何を扱っていますか？」と相手に聞き出すのはNG。<b>こちらから商品名を指名</b>します。</p>
+
+      <p class="lead">◇ 相手の返事は？</p>
+      <div class="choices">
+        <button class="choice go" onclick="go('s4')"><span class="bt">✅ 扱っている</span>クロージングへ <span class="arrow">→</span></button>
+        <button class="choice" onclick="go('s3_alt')"><span class="bt">🔁 その商品はない／終了</span>類似品を聞く <span class="arrow">→</span></button>
+      </div>
+    `;
+    setActions([{label:"終了", cls:"btn-ghost", onClick:abortPicker}]);
+  },
+
+  /* STEP3 派生：類似品 */
+  s3_alt(){
+    setTop("商品を伝える", 3);
+    document.getElementById('screen').innerHTML = `
+      <div class="step-title"><span class="step-num">3</span><h2>その商品が無いとき</h2></div>
+      <p class="step-when">近い商品でも構いません</p>
+      <div class="say"><span class="q">でしたら、近い商品でも構いません。御社で今お出しできる類似品はございますか？</span></div>
+      <p class="lead">◇ どうなりましたか？</p>
+      <div class="choices">
+        <button class="choice go" onclick="go('s4')"><span class="bt">✅ 類似品を出してもらえそう</span>クロージングへ <span class="arrow">→</span></button>
+        <button class="choice warn" onclick="finishWith('見送り')"><span class="bt">✖ 取り扱いが合わない</span>「見送り」で記録して終了</button>
+      </div>
+    `;
+    setActions([{label:"終了して記録", cls:"btn-ghost", onClick:abortPicker}]);
+  },
+
+  /* --- STEP4 クロージング --- */
+  s4(){
+    setTop("クロージング", 4);
+    document.getElementById('screen').innerHTML = `
+      <div class="step-title"><span class="step-num">4</span><h2>クロージング</h2></div>
+      <p class="step-when">メールで見積り・資料をお願いする</p>
+
+      <div class="say"><span class="q">それでは、その商品の卸価格・掛け率を含めて、メールでお見積りを頂戴できますでしょうか？</span></div>
+
+      <p style="font-size:13px;color:var(--ink-soft);font-weight:700;margin:16px 0 8px;">※ すぐ見積りが出せない様子なら、まずは下のどれかでもOK</p>
+      <div class="rebuts">
+        <div class="rebut" style="background:var(--say-bg);color:var(--say-ink)"><b style="color:var(--indigo)">① 製品ページURL</b>公開ページのリンクでOK</div>
+        <div class="rebut" style="background:var(--say-bg);color:var(--say-ink)"><b style="color:var(--indigo)">② カタログPDF</b>価格なしでもOK</div>
+        <div class="rebut" style="background:var(--say-bg);color:var(--say-ink)"><b style="color:var(--indigo)">③ 代表SKU 数点</b>型番・仕様だけでもOK</div>
+      </div>
+    `;
+    setActions([
+      {label:"次へ：情報を確認する →", cls:"btn-primary", onClick:()=>go('s5')},
+      {label:"終了", cls:"btn-ghost", onClick:abortPicker}
+    ]);
+  },
+
+  /* --- STEP5 情報確認 --- */
+  s5(){
+    setTop("情報確認", 5);
+    document.getElementById('screen').innerHTML = `
+      <div class="step-title"><span class="step-num">5</span><h2>情報確認（必ず取る）</h2></div>
+      <p class="step-when">こちらを伝え、相手の情報を聞いて入力します</p>
+
+      <div class="selfinfo">🗣 こちらの担当をお伝え：<b>${SELF.repName}</b>／メール <b>${SELF.email}</b>
+        <button class="copy" onclick="copyText('${SELF.email}')">メールをコピー</button></div>
+
+      <div class="field"><label>① 相手のお名前（漢字も確認）</label>
+        <input type="text" data-bind="contactName" value="${esc(cur.contactName)}" placeholder="例）佐藤 様"></div>
+      <div class="field"><label>② メールアドレス（復唱して確認）</label>
+        <input type="text" inputmode="email" data-bind="contactEmail" value="${esc(cur.contactEmail)}" placeholder="例）sato@example.co.jp">
+        <div class="hint">復唱して「お間違いないですか？」と確認しましょう。</div></div>
+      <div class="field"><label>③ 部署・役職</label>
+        <input type="text" data-bind="contactDept" value="${esc(cur.contactDept)}" placeholder="例）営業部 課長"></div>
+      <div class="field"><label>④ 返信用のお電話番号</label>
+        <input type="text" inputmode="tel" data-bind="contactPhone" value="${esc(cur.contactPhone)}" placeholder="例）03-xxxx-xxxx"></div>
+      <div class="field"><label>⑤ 送付の予定日</label>
+        <input type="text" data-bind="sendDate" value="${esc(cur.sendDate)}" placeholder="例）今週中／6月12日 など">
+        <div class="hint">「いつ頃ご送付いただけますか？」と聞きましょう。</div></div>
+    `;
+    setActions([
+      {label:"次へ：お礼して終わる →", cls:"btn-primary", onClick:()=>{ syncInputs(); go('s6'); }},
+      {label:"終了", cls:"btn-ghost", onClick:abortPicker}
+    ]);
+  },
+
+  /* --- STEP6 お礼 → 終話 --- */
+  s6(){
+    setTop("お礼 → 終話", 6);
+    document.getElementById('screen').innerHTML = `
+      <div class="step-title"><span class="step-num">6</span><h2>お礼 → 終話</h2></div>
+      <p class="step-when">最後まで丁寧に</p>
+      <div class="say" style="background:var(--green-bg);color:#21603f;border-color:#cfe6d8;">
+        <span class="q" style="color:var(--green)">本日は貴重なお時間をいただき、ありがとうございました。引き続きよろしくお願いいたします。失礼いたします。</span></div>
+
+      <div class="panel">
+        <h3 style="color:var(--indigo)">この架電のメモ（任意）</h3>
+        <div class="field"><textarea data-bind="note" placeholder="気づいたこと・次回の申し送りなど">${esc(cur.note)}</textarea></div>
+      </div>
+
+      <p style="font-size:13px;color:var(--ink-soft);">下のボタンで結果を記録します。送付の約束が取れていれば「成立」です。</p>
+    `;
+    setActions([
+      {label:"🎉 成立で記録して終了", cls:"btn-green", onClick:()=>{ syncInputs(); finishWith('成立'); }},
+      {label:"別の結果で記録", cls:"btn-ghost", onClick:()=>{ syncInputs(); abortPicker(); }}
+    ]);
+  }
+};
+
+/* ===================== 起動 ===================== */
+goHome();
+</script>
+</body>
+</html>
