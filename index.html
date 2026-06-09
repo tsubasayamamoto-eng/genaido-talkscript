@@ -453,7 +453,8 @@ function newCall(){
     id: String(Date.now()),
     createdAt: new Date().toISOString(),
     company:"", productName:"", productSize:"", productRate:"",
-    contactName:"", contactEmail:"", contactDept:"", contactPhone:"", sendDate:"",
+    contactName:"", contactEmail:"", contactDept:"", contactPhone:"",
+    sendRoute:"", formUrl:"", sendDate:"",
     result:"", note:""
   };
 }
@@ -613,7 +614,8 @@ function exportCSV(){
     ["createdAt","日時"],["company","会社名"],["productName","商品名"],
     ["productSize","容量・サイズ"],["productRate","希望掛け率"],
     ["contactName","担当者名"],["contactDept","部署・役職"],
-    ["contactEmail","メール"],["contactPhone","電話"],["sendDate","送付予定"],
+    ["contactEmail","送り先メール"],["sendRoute","送り方"],["formUrl","フォームURL・宛先"],
+    ["contactPhone","電話"],["sendDate","こちらの送付予定"],
     ["result","結果"],["note","メモ"]
   ];
   const head = cols.map(c=>c[1]).join(",");
@@ -689,7 +691,7 @@ function abortPicker(){
     title:"架電を終了して記録",
     desc:"今回の結果を選んでください。",
     choices:[
-      {label:"成立（送付OK）",result:"成立",cls:"g"},
+      {label:"成立（送り先OK）",result:"成立",cls:"g"},
       {label:"見送り",result:"見送り",cls:"y"},
       {label:"担当不在",result:"担当不在",cls:"y"},
       {label:"受付拒否",result:"受付拒否",cls:"r"},
@@ -747,26 +749,28 @@ function fMemoReadonly(){
     <p class="ph" style="margin:0">商品名：<b class="refName">${esc(cur.productName||'（上で記入）')}</b>　／　容量・サイズ：<span class="refSize">${esc(cur.productSize||'—')}</span>　／　希望掛け率：<span class="refRate">${esc(cur.productRate||'—')}</span></p></div>`;
 }
 function fGoal(){
-  return `<p style="font-size:13px;color:var(--ink-soft);">ゴール＝<b>商品名を伝える → メールで見積り・カタログをもらう</b>。<br>断られても、すぐ切らずに切り返してから次へ進みます。</p>`;
+  return `<p style="font-size:13px;color:var(--ink-soft);">ゴール＝<b>商品名を伝える → 送り先（メール または 問い合わせフォーム）を確認 → こちらから資料・お見積りのご相談を送る</b>。<br>先方に送ってもらう手間はかけません。断られても、すぐ切らずに切り返してから次へ進みます。</p>`;
 }
 function fSelfinfo(){
-  return `<div class="selfinfo">🗣 こちらの担当をお伝え：<b>${SELF.repName}</b>／メール <b>${SELF.email}</b>
-    <button class="copy" onclick="copyText('${SELF.email}')">メールをコピー</button></div>`;
+  return `<div class="selfinfo">🗣 こうお伝えします：<br>「のちほど弊社の<b>${SELF.repName}</b>より、このアドレス（<b>${SELF.email}</b>）から、資料とお見積りのご相談をお送りします。」
+    <button class="copy" onclick="copyText('${SELF.email}')">自社メールをコピー</button></div>`;
 }
 function fRecord(){
   return [
     fField({label:'① 相手のお名前（漢字も確認）',bind:'contactName',ph:'例）佐藤 様'}),
-    fField({label:'② メールアドレス（復唱して確認）',bind:'contactEmail',inputmode:'email',ph:'例）sato@example.co.jp',hint:'復唱して「お間違いないですか？」と確認しましょう。'}),
+    fField({label:'② 送り先メールアドレス（ここに送ります・復唱して確認）',bind:'contactEmail',inputmode:'email',ph:'例）sato@example.co.jp',hint:'復唱して「お間違いないですか？」と確認しましょう。'}),
     fField({label:'③ 部署・役職',bind:'contactDept',ph:'例）営業部 課長'}),
-    fField({label:'④ 返信用のお電話番号',bind:'contactPhone',inputmode:'tel',ph:'例）03-xxxx-xxxx'}),
-    fField({label:'⑤ 送付の予定日',bind:'sendDate',ph:'例）今週中／6月12日 など',hint:'「いつ頃ご送付いただけますか？」と聞きましょう。'})
+    fField({label:'④ 送り方',bind:'sendRoute',ph:'例）メール／問い合わせフォーム'}),
+    fField({label:'⑤ 問い合わせフォームの場合：フォームURL・宛先メモ',bind:'formUrl',ph:'例）https://〜/contact ／ 営業部 佐藤様宛'}),
+    fField({label:'⑥ お電話番号（任意）',bind:'contactPhone',inputmode:'tel',ph:'例）03-xxxx-xxxx'}),
+    fField({label:'⑦ こちらの送付予定（いつ送るか）',bind:'sendDate',ph:'例）本日中／明日の午前 など',hint:'「本日中にお送りします」など、こちらから伝えましょう。'})
   ].join('');
 }
 function fProductSay(){
   const p1 = cur.productName ? esc(cur.productName) : '〔商品名〕';
   return fSay({
-    q:`実は、御社の「<span class="prodref">${p1}</span>」という商品を、ぜひ弊社で取り扱わせていただきたく思っておりまして、こちらのお見積りを頂戴できますでしょうか？`,
-    small:'（複数あれば）あわせて別の商品なども、お見積りいただけますと幸いです。'
+    q:`実は、御社の「<span class="prodref">${p1}</span>」という商品を、ぜひ弊社で取り扱わせていただきたく思っておりまして、お取り扱いの条件など、ご相談させていただけますでしょうか？`,
+    small:'（複数あれば）あわせて別の商品なども、ご相談できれば幸いです。'
   });
 }
 
@@ -827,7 +831,7 @@ const NODES = {
       + fNote({html:'※「何を扱っていますか？」と相手に聞き出すのはNG。<b>こちらから商品名を指名</b>します。'}),
     branchLead:'◇ 相手の返事は？',
     branches:[
-      {style:'go', bt:'✅ 扱っている', desc:'クロージングへ', goto:'s4'},
+      {style:'go', bt:'✅ 扱っている', desc:'送り先の確認へ', goto:'s4'},
       {style:'', bt:'🔁 その商品はない／終了', desc:'類似品を聞く', goto:'s3_alt'}
     ],
     naviActions:[{label:'終了', cls:'btn-ghost', abort:true}]
@@ -836,26 +840,32 @@ const NODES = {
     body:()=> fSay({q:'でしたら、近い商品でも構いません。御社で今お出しできる類似品はございますか？'}),
     branchLead:'◇ どうなりましたか？',
     branches:[
-      {style:'go', bt:'✅ 類似品を出してもらえそう', desc:'クロージングへ', goto:'s4'},
+      {style:'go', bt:'✅ 類似品を出してもらえそう', desc:'送り先の確認へ', goto:'s4'},
       {style:'warn', bt:'✖ 取り扱いが合わない', desc:'「見送り」で記録して終了', result:'見送り'}
     ],
     naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
   },
-  s4:{ no:4, title:'クロージング', h:'クロージング', when:'メールで見積り・資料をお願いする',
+  s4:{ no:4, title:'送り先を確認', h:'送り先を確認（こちらから送ります）', when:'先方の手間を省き、こちらからお送りします',
     body:()=>
-      fSay({q:'それでは、その商品の卸価格・掛け率を含めて、メールでお見積りを頂戴できますでしょうか？'})
-      + fNote({bold:true, html:'※ すぐ見積りが出せない様子なら、まずは下のどれかでもOK'})
-      + fRebuts({variant:'indigo', items:[
-        {b:'① 製品ページURL', text:'公開ページのリンクでOK'},
-        {b:'② カタログPDF', text:'価格なしでもOK'},
-        {b:'③ 代表SKU 数点', text:'型番・仕様だけでもOK'}
-      ]}),
-    naviActions:[
-      {label:'次へ：情報を確認する →', cls:'btn-primary', go:'s5'},
-      {label:'終了', cls:'btn-ghost', abort:true}
-    ]
+      fSay({q:'ありがとうございます。お忙しいところお手間を取らせてしまいますので、<b>こちらから資料とお見積りのご相談をメールでお送りさせていただきます</b>。差し支えなければ、ご担当者様のメールアドレスを教えていただけますでしょうか？'})
+      + fHelper({label:'「どんな内容を送るの？」と聞かれたら', html:'弊社の簡単なご紹介と、お取り扱いを希望する商品・条件のご相談です。ご返信を急かすものではありません。'})
+      + fHelper({label:'「アドレスはちょっと…」と渋られたら', html:'承知しました。それでしたら、御社HPのお問い合わせフォームからお送りしても差し支えないでしょうか？'}),
+    branchLead:'◇ 相手の返事は？',
+    branches:[
+      {style:'go', bt:'✅ メールアドレスを教えてもらえた', desc:'送付準備へ（このアドレスに送ります）', goto:'s5'},
+      {style:'', bt:'🔁 「問い合わせフォームから送って」と言われた', desc:'フォームの宛先を確認', goto:'s4_form'}
+    ],
+    naviActions:[{label:'終了', cls:'btn-ghost', abort:true}]
   },
-  s5:{ no:5, title:'情報確認', h:'情報確認（必ず取る）', when:'こちらを伝え、相手の情報を聞いて入力します',
+  s4_form:{ no:4, isSub:true, title:'送り先を確認', h:'問い合わせフォームから送る場合', when:'フォームの宛先を確認します',
+    body:()=> fSay({q:'承知しました。それでは御社HPのお問い合わせフォームからお送りいたします。念のため、フォームに記載する宛先のご部署や、どなた様宛とすればよいか教えていただけますか？'}),
+    branchLead:'◇ 宛先はわかりましたか？',
+    branches:[
+      {style:'go', bt:'✅ フォームの宛先がわかった', desc:'送付準備へ（フォームから送ります）', goto:'s5'}
+    ],
+    naviActions:[{label:'終了', cls:'btn-ghost', abort:true}]
+  },
+  s5:{ no:5, title:'送付準備', h:'送付準備・情報確認（必ず取る）', when:'送り先を確認して入力します',
     body:()=> fSelfinfo() + fRecord(),
     naviActions:[
       {label:'次へ：お礼して終わる →', cls:'btn-primary', go:'s6'},
@@ -867,7 +877,7 @@ const NODES = {
       `<div class="step-art">${OPERATOR_SVG}</div>`
       + fSay({green:true, q:'本日は貴重なお時間をいただき、ありがとうございました。引き続きよろしくお願いいたします。失礼いたします。'})
       + `<div class="panel"><h3 style="color:var(--indigo)">この架電のメモ（任意）</h3>${fField({label:'',bind:'note',area:true,ph:'気づいたこと・次回の申し送りなど'})}</div>`
-      + fNote({html:'結果を記録します。送付の約束が取れていれば「成立」です。'}),
+      + fNote({html:'結果を記録します。送り先（メール／問い合わせフォーム）が確認できていれば「成立」です。<br>このあと忘れずに、こちらから資料・お見積りのご相談をお送りします。'}),
     naviActions:[
       {label:'🎉 成立で記録して終了', cls:'btn-green', finish:'成立'},
       {label:'別の結果で記録', cls:'btn-ghost', abort:true}
@@ -929,7 +939,7 @@ function prepRender(){
 
 /* ナビ型の遷移テーブル */
 const STEPS = { prep: prepRender };
-['s1','s1_none','s1_absent','s2','s3','s3_alt','s4','s5','s6'].forEach(id=>{
+['s1','s1_none','s1_absent','s2','s3','s3_alt','s4','s4_form','s5','s6'].forEach(id=>{
   STEPS[id] = ()=> naviRender(id);
 });
 
@@ -991,7 +1001,7 @@ function renderScroll(){
       <p class="lead" style="margin-top:0">通話が終わったら、結果を記録します</p>
       <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 6px;">下のバーのボタンか、ここから選べます。</p>
       <div class="result-grid">
-        <button class="rbtn g" onclick="syncInputs();finishWith('成立')">成立（送付OK）</button>
+        <button class="rbtn g" onclick="syncInputs();finishWith('成立')">成立（送り先OK）</button>
         <button class="rbtn y" onclick="syncInputs();finishWith('見送り')">見送り</button>
         <button class="rbtn y" onclick="syncInputs();finishWith('担当不在')">担当不在</button>
         <button class="rbtn r" onclick="syncInputs();finishWith('受付拒否')">受付拒否</button>
