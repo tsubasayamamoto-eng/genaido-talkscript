@@ -1446,8 +1446,10 @@ function restProductsText(){
 }
 function fProductSay(){
   const p1 = (cur.product1||'').trim() ? esc(cur.product1.trim()) : '〔商品名①〕';
+  const ref = (cur.referralMaker||'').trim();
+  const owner = ref ? `${esc(ref)}の` : '御社の';
   return fSay({
-    q:`実は、御社の「<span class="prodref">${p1}</span>」という商品を、<br>ぜひ弊社で取り扱わせていただきたく思っておりまして、<br>ご相談させていただきたく、もしよろしければ<br>お見積書をいただくことは出来ますでしょうか？`,
+    q:`実は、${owner}「<span class="prodref">${p1}</span>」という商品を、<br>ぜひ弊社で取り扱わせていただきたく思っておりまして、<br>ご相談させていただきたく、もしよろしければ<br>お見積書をいただくことは出来ますでしょうか？`,
     small:`<span class="prodrest">${restProductsText()}</span>`
   });
 }
