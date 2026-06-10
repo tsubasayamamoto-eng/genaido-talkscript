@@ -112,6 +112,9 @@
   .rebuts{display:flex;flex-direction:column;gap:8px;margin:8px 0;}
   .rebut{background:var(--branch-bg);border-radius:12px;padding:11px 14px;font-size:14px;color:#6f4f12;}
   .rebut b{display:block;color:#5a3f0e;margin-bottom:3px;}
+  .rebut .rebut-note{display:block;font-size:12.5px;color:#8a7a52;font-weight:400;margin:0 0 5px;}
+  .rebut .rebut-say{display:block;}
+  .rebut .rebut-say::before{content:"🗣 ";}
 
   /* Memo / record fields */
   .field{margin:12px 0;}
@@ -740,6 +743,9 @@ function fRebuts(b){
   const items = b.items.map(it=>{
     const cls = b.variant==='indigo' ? ' style="background:var(--say-bg);color:var(--say-ink)"' : '';
     const bcl = b.variant==='indigo' ? ' style="color:var(--indigo)"' : '';
+    if(it.note){
+      return `<div class="rebut"${cls}><b${bcl}>${it.b}</b><span class="rebut-note">${it.note}</span><span class="rebut-say">${it.text}</span></div>`;
+    }
     return `<div class="rebut"${cls}><b${bcl}>${it.b}</b>${it.text}</div>`;
   }).join('');
   return `${b.lead?`<p class="lead">${b.lead}</p>`:''}<div class="rebuts">${items}</div>`;
@@ -848,10 +854,10 @@ const NODES = {
         q:`お忙しいところ恐れ入ります。${selfShort(SELF.company)}の${selfShort(SELF.caller)}と申します。`,
         small:'弊社は愛知県で小売業を営んでおり、現在はECショップを運営しており、将来的には実店舗も見据えております。商品ラインナップの幅を広げようと検討していたところ、御社のHPで取り扱い商品を拝見し、ぜひ<b>新たな仕入れ候補</b>として検討させていただきたくご連絡いたしました。'
       })
-      + fRebuts({lead:'◇ 断られたら（下のどれかで切り返してそのまま続ける）', items:[
-        {b:'「結構です」', text:'今すぐ必要ないとは思いますが、同じ商材を扱うお客様も弊社経由で販売数が伸びた実績がありまして〜'},
-        {b:'「資料・サイトがない」', text:'綺麗な資料でなくて大丈夫です。普段お使いの商品リストや価格表（Excel）でも構いません〜'},
-        {b:'「大量・現金じゃないと無理」', text:'無理なロットはお願いしません。小ロットのお試しから、お支払いも御社の規定に合わせます〜'}
+      + fRebuts({lead:'◇ 断られたら（相手がこう言ったら、🗣のセリフでそのまま切り返します）', items:[
+        {b:'「結構です」', note:'そっけなく断られたとき。すぐ引かず、ひと言だけ返します。', text:'今すぐ必要ないとは思いますが、同じ商材を扱うお客様も弊社経由で販売数が伸びた実績がありまして〜'},
+        {b:'「資料・サイトがない」', note:'「送れる資料がない」と言われたとき。きれいな資料は不要、と伝えます。', text:'綺麗な資料でなくて大丈夫です。普段お使いの商品リストや価格表（Excel）でも構いません〜'},
+        {b:'「大量・現金じゃないと無理」', note:'取引の条件が厳しそうなとき。無理はさせない、と伝えます。', text:'無理なロットはお願いしません。小ロットのお試しから、お支払いも御社の規定に合わせます〜'}
       ]}),
     naviActions:[
       {label:'次へ：狙う商品を伝える →', cls:'btn-primary', go:'s3'},
