@@ -309,6 +309,24 @@
   .dt-v{flex:1;word-break:break-all;color:var(--ink);}
   .dt-note{font-size:14px;white-space:pre-wrap;background:var(--paper);border-radius:9px;padding:11px;line-height:1.7;}
 
+  /* 卸・商社リスト */
+  .distlist-btn{width:100%;background:var(--branch-bg);border:1.5px solid #C9B79A;color:var(--branch-ink);
+    border-radius:12px;padding:13px 15px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;
+    margin:0 0 14px;text-align:left;display:flex;align-items:center;justify-content:space-between;}
+  .distlist-btn:active{transform:scale(.99);}
+  .distmodal{max-height:90vh;overflow-y:auto;}
+  .dist-row{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);
+    border-radius:12px;padding:11px 13px;margin-bottom:9px;}
+  .dist-main{flex:1;min-width:0;}
+  .dist-name{font-weight:700;font-size:15px;color:var(--ink);display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .dist-src{font-size:12px;color:var(--ink-soft);margin-top:3px;}
+  .dist-call{flex:0 0 auto;background:var(--coral);color:#fff;border:none;border-radius:10px;
+    padding:10px 13px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .dist-call:active{transform:scale(.96);}
+  .mini-flag{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;}
+  .mini-flag.done{background:var(--green-bg);color:var(--green);}
+  .mini-flag.todo{background:var(--coral-bg);color:var(--coral);}
+
   /* Result picker (abort / finish) */
   .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0;}
   .result-grid.solo{grid-template-columns:1fr;}
@@ -801,6 +819,7 @@ function goHome(){
   const today = new Date().toISOString().slice(0,10);
   const todayCount = records.filter(r=>(r.finishedAt||r.createdAt||"").slice(0,10)===today).length;
   const seikai = records.filter(r=>r.result==="成立").length;
+  const distCount = collectDistributors().length;
 
   let recHtml;
   if(records.length===0){
@@ -843,6 +862,7 @@ function goHome(){
     <div style="font-size:12.5px;color:var(--ink-soft);margin:0 4px 12px;">
       今日：${todayCount}件　／　累計の成立：${seikai}件
     </div>
+    ${distCount>0?`<button class="distlist-btn" onclick="openDistList()"><span>🏢 紹介された卸・商社リスト（${distCount}件）</span><span>→</span></button>`:''}
     ${recHtml}
 
     <p class="foot">株式会社玄愛堂 ／ 商品問い合わせ 架電ナビ（パート様用）<br>記録はこの端末のブラウザ内にのみ保存されます。</p>
@@ -922,6 +942,80 @@ function openDetailModal(id){
   back.querySelector('[data-close]').onclick = ()=> back.remove();
   back.querySelector('[data-mail]').onclick = ()=>{ back.remove(); openMailModal(id); };
   document.body.appendChild(back);
+}
+
+/* ===================== 卸・商社リスト（紹介された仕入れ先） ===================== */
+function collectDistributors(){
+  const map = {}; // 正規化名 -> {name, sources:[{company,date}]}
+  loadRecords().forEach(r=>{
+    DIST_BINDS.map(b=>r[b]).concat([r.distributor]).forEach(d=>{
+      const v=(d||'').trim(); if(!v) return;
+      const key=normalizeCo(v);
+      if(!map[key]) map[key]={name:v, sources:[]};
+      map[key].sources.push({company:r.company||'（無名）', date:r.finishedAt||r.createdAt});
+    });
+  });
+  return Object.values(map);
+}
+function distCalled(distName){
+  const k=normalizeCo(distName);
+  return loadRecords().some(r=> normalizeCo(r.company)===k);
+}
+function openDistList(){
+  const dists = collectDistributors();
+  const back=document.createElement('div'); back.className='modal-back';
+  let body;
+  if(!dists.length){
+    body = `<div class="empty">まだ紹介された卸・商社はありません。<br>架電で「卸・商社の紹介」を記録すると、ここに集まります。</div>`;
+  }else{
+    body = dists.map(d=>{
+      const called = distCalled(d.name);
+      const flag = called
+        ? '<span class="mini-flag done">✅ 架電済み</span>'
+        : '<span class="mini-flag todo">未架電</span>';
+      const src = d.sources.map(s=>{const t=new Date(s.date);return `${esc(s.company)}（${t.getMonth()+1}/${t.getDate()}）`;}).join('、');
+      return `<div class="dist-row">
+        <div class="dist-main">
+          <div class="dist-name">${esc(d.name)} ${flag}</div>
+          <div class="dist-src">紹介元：${src}</div>
+        </div>
+        <button class="dist-call">📞 架電</button>
+      </div>`;
+    }).join('');
+  }
+  back.innerHTML=`<div class="modal distmodal">
+    <h3>🏢 卸・商社リスト</h3>
+    <p>架電で教えてもらった卸・商社の一覧です。ここから直接架電できます（このリストだけCSVにも出せます）。</p>
+    ${dists.length?`<div style="text-align:right;margin:-6px 0 12px"><button class="minibtn" onclick="exportDistCSV()">⬇ この一覧をCSV出力</button></div>`:''}
+    ${body}
+    <button class="rbtn" style="width:100%;margin-top:12px" data-close="1">閉じる</button>
+  </div>`;
+  back.addEventListener('click', e=>{ if(e.target===back) back.remove(); });
+  back.querySelector('[data-close]').onclick=()=> back.remove();
+  back.querySelectorAll('.dist-call').forEach((btn,i)=>{
+    btn.onclick=()=>{ back.remove(); startCall(dists[i].name); };
+  });
+  document.body.appendChild(back);
+}
+function exportDistCSV(){
+  const dists=collectDistributors();
+  if(!dists.length){ toast('卸・商社の記録がありません'); return; }
+  const head=['卸・商社名','紹介元','紹介日','架電状況'];
+  const esc2=v=>{ v=String(v).replace(/"/g,'""'); return /[",\n]/.test(v)?`"${v}"`:v; };
+  const rows=dists.map(d=>{
+    const s=d.sources[0]; const t=new Date(s.date);
+    const date=`${t.getFullYear()}/${t.getMonth()+1}/${t.getDate()}`;
+    const srcCompanies=d.sources.map(x=>x.company).join(' / ');
+    const status=distCalled(d.name)?'架電済み':'未架電';
+    return [d.name, srcCompanies, date, status].map(esc2).join(',');
+  }).join('\r\n');
+  const csv='﻿'+head.join(',')+'\r\n'+rows;
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='玄愛堂_卸商社リスト_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  toast('卸・商社リストをCSV出力しました');
 }
 
 /* ===================== メール送信ステータス ===================== */
@@ -1130,8 +1224,9 @@ function openMailModal(id){
 
 /* ===================== 架電スタート（進め方を選ぶ） ===================== */
 let mode = "navi"; // 'navi' or 'scroll'
-function startCall(){
+function startCall(prefillCompany){
   cur = newCall();
+  if(prefillCompany){ cur.company = prefillCompany; }
   stepStack = [];
   currentStepId = null;
   setTop("進め方を選ぶ", 0);
