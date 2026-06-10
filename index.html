@@ -510,6 +510,64 @@ const CLIENT_SVG = `<svg viewBox="0 0 220 210" xmlns="http://www.w3.org/2000/svg
   <path d="M163 61 l4.5 4.5 9 -10" stroke="#2F7A56" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
+/* ===================== 場面イラスト（オブジェクト系） ===================== */
+const PHONE_SVG = `<svg viewBox="0 0 220 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="電話をかけるイラスト">
+  <circle cx="110" cy="105" r="92" fill="#EAF1FA"/>
+  <circle cx="30" cy="64" r="5" fill="#7488B9" opacity=".5"/>
+  <circle cx="190" cy="150" r="6" fill="#E26B43" opacity=".4"/>
+  <circle cx="44" cy="160" r="4" fill="#7488B9" opacity=".45"/>
+  <g transform="translate(52 50) scale(4.6)" fill="#2E4374">
+    <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+  </g>
+  <path d="M150 58 a30 30 0 0 1 0 44" stroke="#E26B43" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M162 46 a46 46 0 0 1 0 68" stroke="#F0A07E" stroke-width="5" fill="none" stroke-linecap="round"/>
+</svg>`;
+
+const DOC_SVG = `<svg viewBox="0 0 220 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="お見積書のイラスト">
+  <circle cx="110" cy="105" r="92" fill="#FBE9E0"/>
+  <circle cx="32" cy="66" r="5" fill="#F0A07E" opacity=".55"/>
+  <circle cx="188" cy="150" r="6" fill="#7488B9" opacity=".4"/>
+  <circle cx="44" cy="158" r="4" fill="#F0A07E" opacity=".5"/>
+  <rect x="66" y="52" width="88" height="106" rx="9" fill="#ffffff" stroke="#2E4374" stroke-width="4"/>
+  <line x1="80" y1="76" x2="140" y2="76" stroke="#7488B9" stroke-width="5" stroke-linecap="round"/>
+  <line x1="80" y1="92" x2="140" y2="92" stroke="#7488B9" stroke-width="5" stroke-linecap="round"/>
+  <line x1="80" y1="108" x2="122" y2="108" stroke="#7488B9" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="142" cy="140" r="23" fill="#E26B43"/>
+  <g stroke="#ffffff" stroke-width="3.4" stroke-linecap="round" fill="none">
+    <path d="M135 131 l7 9"/><path d="M149 131 l-7 9"/><path d="M142 140 v11"/>
+    <path d="M134 143 h16"/><path d="M134 148 h16"/>
+  </g>
+</svg>`;
+
+const MAIL_SVG = `<svg viewBox="0 0 220 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="メールを送るイラスト">
+  <circle cx="110" cy="105" r="92" fill="#EAF1FA"/>
+  <circle cx="30" cy="62" r="5" fill="#7488B9" opacity=".5"/>
+  <circle cx="190" cy="150" r="6" fill="#2F7A56" opacity=".4"/>
+  <circle cx="44" cy="158" r="4" fill="#7488B9" opacity=".45"/>
+  <rect x="54" y="76" width="112" height="78" rx="11" fill="#2E4374"/>
+  <path d="M60 86 L110 122 L160 86" stroke="#ffffff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="158" cy="70" r="21" fill="#E26B43"/>
+  <path d="M149 70 l6 6 12 -13" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+const CLIPBOARD_SVG = `<svg viewBox="0 0 220 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="情報を記入するイラスト">
+  <circle cx="110" cy="105" r="92" fill="#E5F2EA"/>
+  <circle cx="32" cy="64" r="5" fill="#2F7A56" opacity=".45"/>
+  <circle cx="188" cy="150" r="6" fill="#7488B9" opacity=".4"/>
+  <circle cx="44" cy="158" r="4" fill="#2F7A56" opacity=".4"/>
+  <rect x="64" y="54" width="92" height="108" rx="11" fill="#2E4374"/>
+  <rect x="74" y="66" width="72" height="86" rx="6" fill="#ffffff"/>
+  <rect x="96" y="48" width="28" height="16" rx="5" fill="#7488B9"/>
+  <rect x="84" y="82" width="12" height="12" rx="3" fill="#2F7A56"/>
+  <path d="M86.5 88 l2.5 2.5 4.5 -5" stroke="#ffffff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="102" y1="88" x2="136" y2="88" stroke="#9aa6b8" stroke-width="4" stroke-linecap="round"/>
+  <rect x="84" y="104" width="12" height="12" rx="3" fill="#2F7A56"/>
+  <path d="M86.5 110 l2.5 2.5 4.5 -5" stroke="#ffffff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="102" y1="110" x2="136" y2="110" stroke="#9aa6b8" stroke-width="4" stroke-linecap="round"/>
+  <rect x="84" y="126" width="12" height="12" rx="3" fill="#ffffff" stroke="#9aa6b8" stroke-width="2"/>
+  <line x1="102" y1="132" x2="128" y2="132" stroke="#9aa6b8" stroke-width="4" stroke-linecap="round"/>
+</svg>`;
+
 function sha256(ascii){
   function rr(v,a){ return (v>>>a)|(v<<(32-a)); }
   var mp=Math.pow, mw=mp(2,32), result='';
@@ -1185,7 +1243,8 @@ function fProductSay(){
 const NODES = {
   s1:{ no:1, title:'受付突破', h:'受付突破', when:'最初に出た受付の方へ',
     body:()=>
-      fSay({q:`お世話になっております。${SELF.company}の${selfShort(SELF.caller)}と申します。御社HPを拝見し、お見積書をいただきたくご連絡させていただきました。ご担当者の方はお見えでしょうか？`})
+      `<div class="step-art">${PHONE_SVG}</div>`
+      + fSay({q:`お世話になっております。${SELF.company}の${selfShort(SELF.caller)}と申します。御社HPを拝見し、お見積書をいただきたくご連絡させていただきました。ご担当者の方はお見えでしょうか？`})
       + fHelper({label:'「ご用件は？」と聞かれたら', html:'御社の商品の<b>お見積りの件</b>、とお伝えください。'})
       + fHelper({label:'「具体的には？」と聞かれたら', html:'弊社は愛知県で小売業を営んでおり、現在は自社ECショップを中心に、将来的には実店舗も見据えて取扱い商品を増やしております。ぜひ御社の商品を扱わせていただきたくご連絡しました。ご担当者におつなぎいただけますか？'})
       + fHelper({label:'「フォームから送って」と言われたら', html:'フォームから送れない資料のため、差し支えなければメールアドレスを教えていただけますか。<br><span style="color:var(--red)">→ それも断られたら「受付拒否」で記録。</span>'}),
@@ -1233,7 +1292,8 @@ const NODES = {
   },
   s3:{ no:3, title:'商品を伝える', h:'★ 狙う商品を伝える', when:'事前に決めた商品名を、こちらから指名します',
     body:(m)=>
-      (m==='scroll' ? fMemoReadonly() : fMemo())
+      `<div class="step-art">${DOC_SVG}</div>`
+      + (m==='scroll' ? fMemoReadonly() : fMemo())
       + fProductSay()
       + fHelper({label:'「なぜその商品を？」と聞かれたら', html:'ECでその商品の需要が伸びており、安定して仕入れられる先を探しておりまして〜'})
       + fNote({html:'※「何を扱っていますか？」と相手に聞き出すのはNG。<b>こちらから商品名を指名</b>します。'}),
@@ -1272,7 +1332,8 @@ const NODES = {
   },
   s4:{ no:4, title:'送り先を確認', h:'送り先を確認（こちらから送ります）', when:'先方の手間を省き、こちらからお送りします',
     body:()=>
-      fSay({q:'ありがとうございます。お忙しいところお手間を取らせてしまいますので、<b>こちらから資料とお見積りのご相談をメールでお送りさせていただきます</b>。差し支えなければ、ご担当者様のメールアドレスを教えていただけますでしょうか？'})
+      `<div class="step-art">${MAIL_SVG}</div>`
+      + fSay({q:'ありがとうございます。お忙しいところお手間を取らせてしまいますので、<b>こちらから資料とお見積りのご相談をメールでお送りさせていただきます</b>。差し支えなければ、ご担当者様のメールアドレスを教えていただけますでしょうか？'})
       + fHelper({label:'「どんな内容を送るの？」と聞かれたら', html:'弊社の簡単なご紹介と、お取り扱いを希望する商品・条件のご相談です。ご返信を急かすものではありません。'})
       + fHelper({label:'「アドレスはちょっと…」と渋られたら', html:'承知しました。それでしたら、御社HPのお問い合わせフォームからお送りしても差し支えないでしょうか？'}),
     branchLead:'◇ 相手の返事は？',
@@ -1291,7 +1352,7 @@ const NODES = {
     naviActions:[{label:'終了', cls:'btn-ghost', abort:true}]
   },
   s5:{ no:5, title:'送付準備', h:'送付準備・情報確認（必ず取る）', when:'送り先を確認して入力します',
-    body:()=> fSelfinfo() + fRecord(),
+    body:()=> `<div class="step-art">${CLIPBOARD_SVG}</div>` + fSelfinfo() + fRecord(),
     naviActions:[
       {label:'次へ：お礼して終わる →', cls:'btn-primary', go:'s6'},
       {label:'終了', cls:'btn-ghost', abort:true}
