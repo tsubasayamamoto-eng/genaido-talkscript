@@ -436,13 +436,13 @@
   .scroll-step.done .say{opacity:.9;}
   @keyframes doneflash{0%{box-shadow:0 0 0 0 rgba(47,122,86,.5);}100%{box-shadow:0 0 0 16px rgba(47,122,86,0);}}
   .scroll-step.flash{animation:doneflash .55s ease-out;}
-  /* flow connector */
-  .sconnect{position:relative;height:24px;margin:1px 0;}
-  .sconnect::before{content:"";position:absolute;left:calc(50% - 1.5px);top:0;
-    width:3px;height:15px;background:var(--indigo-soft);opacity:.55;border-radius:2px;}
-  .sconnect::after{content:"";position:absolute;left:calc(50% - 5px);top:8px;
-    width:9px;height:9px;border-right:3px solid var(--indigo-soft);border-bottom:3px solid var(--indigo-soft);
-    transform:rotate(45deg);opacity:.55;}
+  /* flow connector（縦線＋塗りつぶし三角の下矢印） */
+  .sconnect{position:relative;height:26px;margin:1px 0;}
+  .sconnect::before{content:"";position:absolute;left:50%;top:2px;transform:translateX(-50%);
+    width:2px;height:13px;background:var(--indigo-soft);opacity:.5;border-radius:2px;}
+  .sconnect::after{content:"";position:absolute;left:50%;top:13px;transform:translateX(-50%);
+    width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;
+    border-top:8px solid var(--indigo-soft);opacity:.5;}
   .binfo{display:block;background:var(--card);border:1.5px solid var(--indigo-soft);border-radius:12px;
     padding:11px 13px;font-size:14.5px;color:var(--ink);line-height:1.5;}
   .binfo .bt{display:block;font-weight:700;font-size:14.5px;margin-bottom:2px;color:var(--indigo);}
