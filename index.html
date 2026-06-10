@@ -263,6 +263,16 @@
   .chip-mail{background:var(--green-bg);color:var(--green);}
   .chip-form{background:var(--say-bg);color:var(--indigo);}
   .chip-note{background:#F0EDE6;color:var(--ink-soft);}
+  .chip-sent{background:var(--green);color:#fff;}
+  .mail-status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 4px;font-size:13px;}
+  .ms-badge{font-weight:700;padding:5px 12px;border-radius:999px;}
+  .ms-badge.sent{background:var(--green-bg);color:var(--green);}
+  .ms-badge.unsent{background:#F0EDE6;color:var(--ink-soft);}
+  .mini-toggle{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);border-radius:8px;
+    padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .mini-toggle:active{transform:scale(.97);}
+  .dt-sent{background:var(--green-bg);color:var(--green);border:1px solid #cfe6d8;border-radius:10px;
+    padding:9px 12px;font-weight:700;font-size:13.5px;margin:0 0 12px;}
 
   /* Detail modal */
   .detailmodal{max-height:90vh;overflow-y:auto;}
@@ -670,7 +680,7 @@ function newCall(){
     company:"", productSize:"", productRate:"",
     contactName:"", contactEmail:"", contactDept:"", contactPhone:"",
     sendRoute:"", formUrl:"", sendDate:"",
-    result:"", note:""
+    result:"", note:"", mailSent:false, mailSentAt:null
   };
   PRODUCT_BINDS.forEach(b=> c[b]="");
   DIST_BINDS.forEach(b=> c[b]="");
@@ -841,6 +851,7 @@ function recCard(r){
   const prods = recProductsJoined(r).replace(/ \/ /g, "・");
   const sub = [prods, r.contactName?("→"+r.contactName):"" ].filter(Boolean).join("　");
   const chips = [];
+  if(r.mailSent) chips.push('<span class="chip chip-sent">✅ メール送信済み</span>');
   if(recDistJoined(r)) chips.push('<span class="chip chip-dist">🏢 商社紹介あり</span>');
   if((r.contactEmail||'').trim()) chips.push('<span class="chip chip-mail">✉️ 宛先あり</span>');
   if((r.sendRoute||'').includes('フォーム') || (r.formUrl||'').trim()) chips.push('<span class="chip chip-form">📋 フォーム</span>');
@@ -876,6 +887,7 @@ function openDetailModal(id){
     <div class="dt-head"><h3>${esc(r.company||'（会社名なし）')}</h3>
       <span class="badge ${r.result||'途中終了'}">${r.result||'途中終了'}</span></div>
     <p class="dt-time">🕒 ${ts}</p>
+    ${r.mailSent?`<div class="dt-sent">✅ メール送信済み${r.mailSentAt?'（'+(()=>{const d=new Date(r.mailSentAt);return (d.getMonth()+1)+'/'+d.getDate()+' '+pad2(d.getHours())+':'+pad2(d.getMinutes());})()+'）':''}</div>`:''}
     ${dist?`<div class="dt-flag">🏢 卸・商社を教えてもらいました<br><b>${esc(dist)}</b></div>`:''}
     <div class="dt-sec"><div class="dt-sec-t">📦 お伝えした商品</div>${prodHtml}
       ${row('容量・サイズ',r.productSize)}${row('希望掛け率',r.productRate)}</div>
@@ -893,6 +905,31 @@ function openDetailModal(id){
   back.querySelector('[data-close]').onclick = ()=> back.remove();
   back.querySelector('[data-mail]').onclick = ()=>{ back.remove(); openMailModal(id); };
   document.body.appendChild(back);
+}
+
+/* ===================== メール送信ステータス ===================== */
+function mailStatusInner(r){
+  if(r && r.mailSent){
+    let ts = '';
+    if(r.mailSentAt){ const d=new Date(r.mailSentAt); ts=`（${d.getMonth()+1}/${d.getDate()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}）`; }
+    return `<span class="ms-badge sent">✅ メール送信済み${ts}</span>`
+      + `<button class="mini-toggle" onclick="setMailSent('${r.id}',false)">送信済みを取り消す</button>`;
+  }
+  return `<span class="ms-badge unsent">未送信</span>`
+    + `<button class="mini-toggle" onclick="setMailSent('${(r&&r.id)||''}',true)">手動で送信済みにする</button>`;
+}
+function setMailSent(id, val){
+  if(!id) return;
+  const list = loadRecords();
+  const r = list.find(x=>x.id===id);
+  if(!r) return;
+  r.mailSent = !!val;
+  r.mailSentAt = val ? new Date().toISOString() : null;
+  saveRecords(list);
+  const st = document.getElementById('mailStatus');
+  if(st) st.innerHTML = mailStatusInner(r);
+  if(document.querySelector('.start-btn')) goHome(); // 一覧のバッジを更新
+  toast(val ? '「メール送信済み」にしました' : '送信済みを取り消しました');
 }
 
 /* ===================== 架電重複チェック（会社名） ===================== */
@@ -1025,8 +1062,9 @@ function openMailModal(id){
     <div class="mailfield"><div class="mlabel">本文（自動入力）</div>
       <textarea class="mbody" readonly>${esc(m.body)}</textarea>
       <button class="copybtn" data-c="body">本文をコピー</button></div>
-    <a class="btn btn-primary maillink" href="${gmail}" target="_blank" rel="noopener">✉️ Gmailで開く（自動入力）</a>
-    <a class="btn btn-ghost maillink" href="${mailto}">メールソフトで開く</a>
+    <div id="mailStatus" class="mail-status">${mailStatusInner(r)}</div>
+    <a class="btn btn-primary maillink" href="${gmail}" target="_blank" rel="noopener" onclick="setMailSent('${r.id}',true)">✉️ Gmailで開く（自動入力）</a>
+    <a class="btn btn-ghost maillink" href="${mailto}" onclick="setMailSent('${r.id}',true)">メールソフトで開く</a>
     <button class="rbtn" style="width:100%;margin-top:10px" data-close="1">閉じる</button>
   </div>`;
   back.addEventListener('click', e=>{ if(e.target===back) back.remove(); });
