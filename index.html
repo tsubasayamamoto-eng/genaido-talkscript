@@ -1211,8 +1211,9 @@ function fGoal(){
   return `<p style="font-size:13px;color:var(--ink-soft);">ゴール＝<b>商品名を伝える → 送り先（メール または 問い合わせフォーム）を確認 → こちらから資料・お見積りのご相談を送る</b>。<br>先方に送ってもらう手間はかけません。断られても、すぐ切らずに切り返してから次へ進みます。</p>`;
 }
 function fSelfinfo(){
-  return `<div class="selfinfo">🗣 こうお伝えします：<br>「のちほど弊社の<b>${SELF.repName}</b>より、このアドレス（<b>${SELF.email}</b>）から、資料とお見積りのご相談をお送りします。」
-    <button class="copy" onclick="copyText('${SELF.email}')">自社メールをコピー</button></div>`;
+  return `<div class="selfinfo">🗣 こうお伝えします：<br>「のちほど弊社の<b>${SELF.repName}</b>より、資料とお見積りのご相談のメールをお送りさせていただきます。」
+    <div style="margin-top:8px;font-size:13px;">差出人メール（架電者の確認用）：<b>${SELF.email}</b>
+    <button class="copy" onclick="copyText('${SELF.email}')">自社メールをコピー</button></div></div>`;
 }
 function fRecord(){
   return [
