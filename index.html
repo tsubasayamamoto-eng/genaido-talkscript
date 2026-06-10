@@ -1226,6 +1226,17 @@ function fRecord(){
     fField({label:'⑦ こちらの送付予定（いつ送るか）',bind:'sendDate',ph:'例）本日中／明日の午前 など',hint:'「本日中にお送りします」など、こちらから伝えましょう。'})
   ].join('');
 }
+function fResultGrid(){
+  return `<p class="lead" style="margin-top:16px">📌 通話の結果を選んで記録（タップで保存）</p>
+    <div class="result-grid">
+      <button class="rbtn g" onclick="syncInputs();finishWith('成立')">成立（送り先OK）</button>
+      <button class="rbtn y" onclick="syncInputs();finishWith('卸紹介')">卸・商社の紹介</button>
+      <button class="rbtn y" onclick="syncInputs();finishWith('見送り')">見送り</button>
+      <button class="rbtn y" onclick="syncInputs();finishWith('担当不在')">担当不在</button>
+      <button class="rbtn r" onclick="syncInputs();finishWith('受付拒否')">受付拒否</button>
+      <button class="rbtn" onclick="syncInputs();finishWith('途中終了')">途中終了</button>
+    </div>`;
+}
 function restProductsText(){
   const ps = PRODUCT_BINDS.slice(1).map(b=>(cur[b]||'').trim()).filter(Boolean);
   return ps.length
@@ -1364,11 +1375,9 @@ const NODES = {
       `<div class="step-art">${OPERATOR_SVG}</div>`
       + fSay({green:true, q:'本日は貴重なお時間をいただき、ありがとうございました。引き続きよろしくお願いいたします。失礼いたします。'})
       + `<div class="panel"><h3 style="color:var(--indigo)">この架電のメモ（任意）</h3>${fField({label:'',bind:'note',area:true,ph:'気づいたこと・次回の申し送りなど'})}</div>`
-      + fNote({html:'結果を記録します。送り先（メール／問い合わせフォーム）が確認できていれば「成立」です。<br>このあと忘れずに、こちらから資料・お見積りのご相談をお送りします。'}),
-    naviActions:[
-      {label:'🎉 成立で記録して終了', cls:'btn-green', finish:'成立'},
-      {label:'別の結果で記録', cls:'btn-ghost', abort:true}
-    ]
+      + fNote({html:'送り先（メール／問い合わせフォーム）が確認できていれば「成立」です。<br>このあと忘れずに、こちらから資料・お見積りのご相談をお送りします。'})
+      + fResultGrid(),
+    naviActions:[]
   }
 };
 
@@ -1500,22 +1509,7 @@ function renderScroll(){
   const cards = [ sCard('📋','かける前に','相手の会社名と、今回すすめる商品をメモします（記録に残ります）。', prepInner) ];
   ['s1','s2','s3','s4','s5','s6'].forEach(id=>{ cards.push(scrollNode(id)); });
 
-  const resultCard = `<div class="scroll-step">
-      <p class="lead" style="margin-top:0">通話が終わったら、結果を記録します</p>
-      <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 6px;">下のバーのボタンか、ここから選べます。</p>
-      <div class="result-grid">
-        <button class="rbtn g" onclick="syncInputs();finishWith('成立')">成立（送り先OK）</button>
-        <button class="rbtn y" onclick="syncInputs();finishWith('卸紹介')">卸・商社の紹介</button>
-        <button class="rbtn y" onclick="syncInputs();finishWith('見送り')">見送り</button>
-        <button class="rbtn y" onclick="syncInputs();finishWith('担当不在')">担当不在</button>
-        <button class="rbtn r" onclick="syncInputs();finishWith('受付拒否')">受付拒否</button>
-      </div>
-    </div>`;
-
-  const html = intro
-    + cards.join('<div class="sconnect"></div>')
-    + '<div class="sconnect"></div>'
-    + resultCard;
+  const html = intro + cards.join('<div class="sconnect"></div>');
 
   const screen = document.getElementById('screen');
   screen.innerHTML = html;
@@ -1530,8 +1524,7 @@ function renderScroll(){
   });
 
   setActions([
-    {label:'🎉 成立で記録', cls:'btn-green', onClick:()=>{ syncInputs(); finishWith('成立'); }},
-    {label:'別の結果で記録', cls:'btn-ghost', onClick:()=>{ syncInputs(); abortPicker(); }}
+    {label:'🎉 成立で記録', cls:'btn-green', onClick:()=>{ syncInputs(); finishWith('成立'); }}
   ]);
 }
 
