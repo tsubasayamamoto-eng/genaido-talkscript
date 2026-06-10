@@ -1547,34 +1547,24 @@ const NODES = {
     branchLead:'◇ 相手の返事は？',
     branches:[
       {style:'go', bt:'✅ 担当者に代わってもらえた', desc:'そのまま担当者と話すへ', goto:'s2'},
-      {style:'', bt:'🔁 担当はいない と言われた', desc:'切り返しのセリフを見る', goto:'s1_none'},
-      {style:'warn', bt:'⏰ 担当者は不在だった', desc:'戻り時間をメモする', goto:'s1_absent'}
+      {style:'', bt:'🔁 担当が不在・いない と言われた', desc:'お名前と在社時間を伺う', goto:'s1_none'}
     ],
     naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
   },
-  s1_none:{ no:1, isSub:true, title:'受付突破', h:'「担当はいない」と言われたら', when:'かけ直すため、お名前を伺います',
+  s1_none:{ no:1, isSub:true, title:'受付突破', h:'担当が不在・つかまらないとき', when:'お名前と在社時間を伺い、かけ直します',
     body:()=>
-      fSay({q:'さようでございますか。<br>それでは改めてお電話させていただきますので、<br>ご担当者様のお名前を教えていただくことはできますでしょうか？'}),
+      fSay({q:'さようでございますか。<br>それでは改めてお電話させていただきますので、<br>ご担当者様のお名前を教えていただくことはできますでしょうか？'})
+      + fSay({q:'ありがとうございます。<br>普段は午前10時／午後3時など、<br>どちらのお時間でしたら社内にお見えでしょうか？'}),
     naviExtra:()=>
       fField({label:'ご担当者名（聞けたら記入）', bind:'contactName', ph:'例）営業部 佐藤様'})
-      + fField({label:'かけ直しメモ（戻り時間・部署など／任意）', bind:'note', area:true, ph:'例）午後なら在席／営業部'}),
+      + fField({label:'在社時間・かけ直しメモ（任意）', bind:'note', area:true, ph:'例）平日 午後3時ごろ在席'}),
     branchLead:'◇ どうなりましたか？',
     branches:[
       {style:'go', bt:'✅ 担当者につないでもらえた', desc:'担当者と話すへ', goto:'s2'},
-      {style:'', bt:'📛 担当者名を教えてもらえた', desc:'「再架電」で記録（後日かけ直す）', result:'再架電'},
-      {style:'warn', bt:'✖ 名前も教えてもらえない', desc:'「受付拒否」で記録して終了', result:'受付拒否'}
+      {style:'', bt:'📛 お名前・在社時間を聞けた', desc:'「再架電」で記録（後日かけ直す）', result:'再架電'},
+      {style:'warn', bt:'✖ 何も教えてもらえない', desc:'「受付拒否」で記録して終了', result:'受付拒否'}
     ],
     naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
-  },
-  s1_absent:{ no:1, isSub:true, title:'受付突破', h:'担当者が不在のとき', when:'戻り時間を聞いてメモします',
-    body:()=> fSay({q:'承知しました。<br>普段は午前10時／午後3時、<br>どちらが社内にお見えでしょうか？'}),
-    naviExtra:()=> fField({label:'戻り時間・再架電メモ', bind:'note', area:true, ph:'例）明日 午後3時ごろ戻り／〇〇様あて'}),
-    branchLead:'◇ どうしますか？（この受付で電話は終了です）',
-    branches:[
-      {style:'go', bt:'📞 後日かけ直す', desc:'「再架電」で記録（折り返し対象）', result:'再架電'},
-      {style:'warn', bt:'担当不在で記録', desc:'「担当不在」で記録して終了', result:'担当不在'}
-    ],
-    naviActions:[{label:'戻る', cls:'btn-ghost', back:true}]
   },
   s2:{ no:2, title:'担当者と話す', h:'担当者と話す', when:'ご本人が電話口に出たら',
     body:()=>{
@@ -1746,7 +1736,7 @@ function prepRender(){
 
 /* ナビ型の遷移テーブル */
 const STEPS = { prep: prepRender };
-['s1','s1_none','s1_absent','s2','s3','s3_dist','s3_alt','s4','s4_form','s5','s6'].forEach(id=>{
+['s1','s1_none','s2','s3','s3_dist','s3_alt','s4','s4_form','s5','s6'].forEach(id=>{
   STEPS[id] = ()=> naviRender(id);
 });
 
