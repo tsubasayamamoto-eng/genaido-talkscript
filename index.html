@@ -766,8 +766,8 @@ function openMailModal(id){
     <div class="mailfield"><div class="mlabel">本文（自動入力）</div>
       <textarea class="mbody" readonly>${esc(m.body)}</textarea>
       <button class="copybtn" data-c="body">本文をコピー</button></div>
-    <a class="btn btn-primary maillink" href="${mailto}">✉️ メールソフトで開く（自動入力）</a>
-    <a class="btn btn-ghost maillink" href="${gmail}" target="_blank" rel="noopener">Gmailで開く</a>
+    <a class="btn btn-primary maillink" href="${gmail}" target="_blank" rel="noopener">✉️ Gmailで開く（自動入力）</a>
+    <a class="btn btn-ghost maillink" href="${mailto}">メールソフトで開く</a>
     <button class="rbtn" style="width:100%;margin-top:10px" data-close="1">閉じる</button>
   </div>`;
   back.addEventListener('click', e=>{ if(e.target===back) back.remove(); });
