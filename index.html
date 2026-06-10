@@ -130,6 +130,12 @@
     background:#fff;border:1.5px dashed var(--indigo-soft);color:var(--indigo);
     border-radius:10px;padding:9px 14px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;}
   .addbtn:active{transform:scale(.98);}
+  .repeat-row{display:flex;align-items:flex-end;gap:8px;}
+  .repeat-row .field{flex:1;}
+  .rmbtn{flex:0 0 auto;width:40px;height:44px;margin:0 0 12px;border:1.5px solid var(--line);
+    background:#fff;color:var(--red);border-radius:10px;font-size:20px;font-weight:700;
+    cursor:pointer;line-height:1;}
+  .rmbtn:active{transform:scale(.92);background:var(--red-bg);}
 
   .panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0;}
   .panel h3{margin:0 0 4px;font-size:15px;color:var(--coral);}
@@ -475,16 +481,20 @@ const STORE_KEY = "genaido_talk_records_v1";
 
 /* 現在の架電の入力状態 */
 let cur = null;
+const PRODUCT_BINDS = Array.from({length:10}, (_,i)=>'product'+(i+1));
+const DIST_BINDS    = Array.from({length:10}, (_,i)=>'distributor'+(i+1));
 function newCall(){
-  return {
+  const c = {
     id: String(Date.now()),
     createdAt: new Date().toISOString(),
-    company:"", product1:"", product2:"", product3:"", product4:"", productSize:"", productRate:"",
-    distributor1:"", distributor2:"", distributor3:"", distributor4:"",
+    company:"", productSize:"", productRate:"",
     contactName:"", contactEmail:"", contactDept:"", contactPhone:"",
     sendRoute:"", formUrl:"", sendDate:"",
     result:"", note:""
   };
+  PRODUCT_BINDS.forEach(b=> c[b]="");
+  DIST_BINDS.forEach(b=> c[b]="");
+  return c;
 }
 
 /* 画面の流れ。id順ではなく next()で遷移 */
@@ -593,7 +603,7 @@ function goHome(){
       const t = new Date(r.finishedAt||r.createdAt);
       const ts = `${t.getMonth()+1}/${t.getDate()} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
       const co = r.company || "（会社名なし）";
-      const prods = [r.product1,r.product2,r.product3,r.product4,r.productName].map(x=>(x||"").trim()).filter(Boolean).join("・");
+      const prods = recProductsJoined(r).replace(/ \/ /g, "・");
       const sub = [prods, r.contactName?("→"+r.contactName):"" ].filter(Boolean).join("　");
       return `<div class="rec">
         <div class="recmain">
@@ -636,8 +646,12 @@ function delRecord(id){
   goHome();
 }
 
+function recProductsJoined(r){
+  return PRODUCT_BINDS.map(b=>r[b]).concat([r.productName])
+    .map(x=>(x||'').trim()).filter(Boolean).join(' / ');
+}
 function recDistJoined(r){
-  return [r.distributor1,r.distributor2,r.distributor3,r.distributor4,r.distributor]
+  return DIST_BINDS.map(b=>r[b]).concat([r.distributor])
     .map(x=>(x||'').trim()).filter(Boolean).join(' / ');
 }
 function exportCSV(){
@@ -645,7 +659,7 @@ function exportCSV(){
   if(list.length===0){ toast("記録がありません"); return; }
   const cols = [
     ["createdAt","日時"],["company","会社名"],
-    ["product1","商品名①"],["product2","商品名②"],["product3","商品名③"],["product4","商品名④"],
+    [recProductsJoined,"商品名"],
     ["productSize","容量・サイズ"],["productRate","希望掛け率"],
     ["contactName","担当者名"],["contactDept","部署・役職"],
     ["contactEmail","送り先メール"],["sendRoute","送り方"],["formUrl","フォームURL・宛先"],
@@ -776,8 +790,8 @@ function fField(b){
     : `<input type="text"${b.inputmode?` inputmode="${b.inputmode}"`:''} data-bind="${b.bind}" value="${esc(cur[b.bind]||'')}" placeholder="${b.ph||''}">`;
   return `<div class="field">${b.label?`<label>${b.label}</label>`:''}${tag}${b.hint?`<div class="hint">${b.hint}</div>`:''}</div>`;
 }
-function maru(i){ return ['①','②','③','④','⑤','⑥'][i] || ('('+(i+1)+')'); }
-/* 「＋追加」で増やせる入力グループ（最初は入力済みの数だけ表示） */
+function maru(i){ return ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'][i] || ('('+(i+1)+')'); }
+/* 「＋追加」で増やせる入力グループ（最初は入力済みの数だけ表示／②以降は×で消せる） */
 function fRepeat(o){
   const vals = o.binds.map(b=>(cur[b]||'').trim());
   let lastFilled = 0;
@@ -785,7 +799,8 @@ function fRepeat(o){
   const visible = Math.max(1, lastFilled+1);
   const fields = o.binds.map((b,i)=>{
     const hide = i >= visible ? ' hidden' : '';
-    return `<div class="repeat-item${hide}">${fField({label:o.labelEach(i), bind:b, ph:o.ph?o.ph(i):''})}</div>`;
+    const rm = i>0 ? `<button type="button" class="rmbtn" onclick="repeatRemove(this)" title="この欄を消す">×</button>` : '';
+    return `<div class="repeat-item${hide}"><div class="repeat-row">${fField({label:o.labelEach(i), bind:b, ph:o.ph?o.ph(i):''})}${rm}</div></div>`;
   }).join('');
   const btnHide = visible >= o.binds.length ? ' hidden' : '';
   return `<div class="repeat-group">${fields}
@@ -799,6 +814,22 @@ function repeatAdd(btn){
   const inp = next && next.querySelector('input,textarea');
   if(inp) inp.focus();
 }
+function repeatRemove(btn){
+  const group = btn.closest('.repeat-group');
+  const items = [...group.querySelectorAll('.repeat-item')];
+  const inputs = items.map(it=> it.querySelector('input,textarea'));
+  const visible = items.filter(it=> !it.classList.contains('hidden'));
+  const lastVis = items.indexOf(visible[visible.length-1]);
+  const p = items.indexOf(btn.closest('.repeat-item'));
+  // 値を上に詰める
+  for(let j=p; j<lastVis; j++){ inputs[j].value = inputs[j+1].value; }
+  inputs[lastVis].value = '';
+  items[lastVis].classList.add('hidden');
+  const addb = group.querySelector('.addbtn');
+  if(addb) addb.classList.remove('hidden');
+  syncInputs();
+  group.dispatchEvent(new Event('input',{bubbles:true})); // スクロール型の表示も更新
+}
 function fSelfname(){
   return `<div class="panel indigo"><h3>自分の名乗り（変わりません）</h3>
     <p class="ph" style="margin:0">「${SELF.company}の${SELF.caller}」と名乗ります。</p></div>`;
@@ -806,7 +837,7 @@ function fSelfname(){
 function fMemo(){
   return `<div class="panel"><h3>📝 今回お伝えする商品</h3>
     ${fRepeat({
-      binds:['product1','product2','product3','product4'],
+      binds:PRODUCT_BINDS,
       labelEach:i=>'商品名'+maru(i),
       ph:i=>i===0?'例）〇〇クリーム 50g':'例）追加の商品名',
       addLabel:'＋ 商品を追加',
@@ -815,7 +846,7 @@ function fMemo(){
     ${fField({label:'希望掛け率',bind:'productRate',ph:'例）60% など'})}</div>`;
 }
 function memoRefInner(){
-  const ps = [cur.product1,cur.product2,cur.product3,cur.product4].map(x=>(x||'').trim()).filter(Boolean);
+  const ps = PRODUCT_BINDS.map(b=>(cur[b]||'').trim()).filter(Boolean);
   const names = ps.length ? ps.map(esc).join('　／　') : '（上で記入）';
   return `商品名：<b>${names}</b><br>容量・サイズ：${esc(cur.productSize||'—')}　／　希望掛け率：${esc(cur.productRate||'—')}`;
 }
@@ -842,7 +873,7 @@ function fRecord(){
   ].join('');
 }
 function restProductsText(){
-  const ps = [cur.product2,cur.product3,cur.product4].map(x=>(x||'').trim()).filter(Boolean);
+  const ps = PRODUCT_BINDS.slice(1).map(b=>(cur[b]||'').trim()).filter(Boolean);
   return ps.length
     ? `あわせて「${ps.map(esc).join('」「')}」なども、ご相談できれば幸いです。`
     : '（複数あれば）あわせて別の商品なども、ご相談できれば幸いです。';
@@ -922,7 +953,7 @@ const NODES = {
     body:()=>
       fSay({q:'さようでございますか。それでしたら、御社の商品をお取り扱いしている<b>卸会社や商社</b>などを、もしよろしければお教えいただくことは出来ますでしょうか？'})
       + fRepeat({
-          binds:['distributor1','distributor2','distributor3','distributor4'],
+          binds:DIST_BINDS,
           labelEach:i=>'卸・商社名'+maru(i)+'（メモ）',
           ph:i=>'例）〇〇卸 株式会社／△△商事',
           addLabel:'＋ 卸・商社を追加',
