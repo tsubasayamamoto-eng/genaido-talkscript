@@ -122,8 +122,15 @@
   .field input, .field textarea{
     width:100%;border:2px solid var(--line);border-radius:11px;
     padding:11px 12px;font-size:16px;font-family:inherit;color:var(--ink);background:#fff;
+    transition:border-color .15s ease, box-shadow .2s ease, background .2s ease;
   }
-  .field input:focus, .field textarea:focus{outline:none;border-color:var(--indigo-soft);}
+  .field input:focus, .field textarea:focus{
+    outline:none;border-color:var(--coral);
+    box-shadow:0 0 0 3px rgba(226,107,67,.18);
+    background:#FFFDFB;
+  }
+  .field label{transition:color .15s ease;}
+  .field:focus-within label{color:var(--coral);}
   .field .hint{font-size:12px;color:var(--ink-soft);margin-top:4px;}
   .field textarea{min-height:64px;resize:vertical;}
   .addbtn{display:inline-flex;align-items:center;gap:6px;margin:2px 0 4px;
@@ -139,6 +146,26 @@
   .dup-warn{background:var(--red-bg);border:1.5px solid var(--red);color:var(--red);
     border-radius:10px;padding:10px 12px;font-size:13px;font-weight:700;margin:2px 0 12px;line-height:1.65;}
   .dup-warn b{color:var(--red);}
+
+  /* 飽きさせない演出：入場アニメ＋ホバー */
+  @keyframes fadeUp{from{opacity:0;transform:translateY(9px);}to{opacity:1;transform:none;}}
+  @keyframes popIn{from{opacity:0;transform:scale(.96);}to{opacity:1;transform:none;}}
+  .step-title{animation:fadeUp .3s ease both;}
+  .step-when{animation:fadeUp .34s ease both;}
+  .say{animation:fadeUp .38s ease both;}
+  .step-art{animation:popIn .45s ease both;}
+  .choices .choice{animation:fadeUp .4s ease both;}
+  @media(hover:hover){
+    .choice,.mode-card,.mailbtn,.minibtn{transition:transform .12s ease, box-shadow .15s ease, border-color .15s ease;}
+    .choice:hover,.mode-card:hover,.mailbtn:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(35,48,68,.12);}
+    .month-head:hover{filter:brightness(1.08);}
+    .donebtn:hover{border-color:var(--green);color:var(--green);}
+    .copybtn:hover,.btn:hover{filter:brightness(1.05);}
+    .rmbtn:hover{background:var(--red-bg);}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .step-title,.step-when,.say,.step-art,.choices .choice{animation:none;}
+  }
 
   .panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0;}
   .panel h3{margin:0 0 4px;font-size:15px;color:var(--coral);}
@@ -310,7 +337,8 @@
     width:100%;border:2px solid var(--line);border-radius:12px;
     padding:13px 14px;font-size:17px;font-family:inherit;text-align:center;letter-spacing:.05em;
   }
-  .auth-box input:focus{outline:none;border-color:var(--indigo-soft);}
+  .auth-box input{transition:border-color .15s ease, box-shadow .2s ease;}
+  .auth-box input:focus{outline:none;border-color:var(--coral);box-shadow:0 0 0 3px rgba(226,107,67,.18);}
   .auth-box button{
     width:100%;margin-top:12px;background:var(--coral);color:#fff;border:none;
     border-radius:12px;padding:15px;font-size:17px;font-weight:700;cursor:pointer;
@@ -448,6 +476,38 @@ const OPERATOR_SVG = `<svg viewBox="0 0 220 210" xmlns="http://www.w3.org/2000/s
   <rect x="150" y="44" width="46" height="36" rx="13" fill="#ffffff" stroke="#2E4374" stroke-width="3"/>
   <path d="M161 70 L156 81 L169 73 Z" fill="#ffffff" stroke="#2E4374" stroke-width="3" stroke-linejoin="round"/>
   <path d="M166 54 c-1.4 0-2.6 1.2-2.6 2.6 0 8 6.4 14.4 14.4 14.4 1.4 0 2.6-1.2 2.6-2.6 v-3.4 l-4.4-1.6 -1.8 2.2 c-2.2-1.1-4-2.9-5.1-5.1 l2.2-1.8 -1.6-4.4 z" fill="#E26B43"/>
+</svg>`;
+
+/* ===================== イラスト（電話を受けている取引先・インラインSVG） ===================== */
+const CLIENT_SVG = `<svg viewBox="0 0 220 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="電話を受けている取引先のイラスト">
+  <circle cx="104" cy="106" r="96" fill="#EAF1FA"/>
+  <circle cx="30" cy="64" r="5" fill="#7488B9" opacity=".5"/>
+  <circle cx="194" cy="150" r="6" fill="#2F7A56" opacity=".4"/>
+  <circle cx="40" cy="166" r="4" fill="#7488B9" opacity=".45"/>
+  <rect x="34" y="178" width="150" height="32" rx="6" fill="#6E5B45"/>
+  <rect x="34" y="178" width="150" height="7" rx="3" fill="#8A7156"/>
+  <path d="M50 210 C50 162 78 148 110 148 C142 148 170 162 170 210 Z" fill="#33415C"/>
+  <path d="M98 152 L110 170 L122 152 L116 146 L104 146 Z" fill="#ffffff"/>
+  <path d="M110 154 l5 6 -5 21 -5 -21 z" fill="#C0492F"/>
+  <rect x="100" y="122" width="20" height="22" rx="9" fill="#E3B084"/>
+  <circle cx="110" cy="100" r="33" fill="#F1C599"/>
+  <circle cx="79" cy="102" r="6.5" fill="#E3B084"/>
+  <circle cx="141" cy="102" r="6.5" fill="#E3B084"/>
+  <path d="M78 98 C77 68 92 54 110 54 C128 54 143 68 142 98 C137 82 126 74 110 74 C94 74 83 82 78 98 Z" fill="#33291F"/>
+  <ellipse cx="99" cy="101" rx="3.2" ry="4.3" fill="#33291F"/>
+  <ellipse cx="121" cy="101" rx="3.2" ry="4.3" fill="#33291F"/>
+  <circle cx="100" cy="99.6" r="1" fill="#ffffff"/>
+  <circle cx="122" cy="99.6" r="1" fill="#ffffff"/>
+  <path d="M93 92 q6 -3 12 0" stroke="#33291F" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path d="M115 92 q6 -3 12 0" stroke="#33291F" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path d="M101 113 q9 7 18 0" stroke="#B5774E" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <g transform="rotate(18 140 104)">
+    <rect x="131" y="84" width="17" height="40" rx="5" fill="#233044"/>
+    <rect x="133.5" y="89" width="12" height="28" rx="2" fill="#9FB3D1"/>
+  </g>
+  <rect x="150" y="44" width="46" height="34" rx="12" fill="#ffffff" stroke="#2F7A56" stroke-width="3"/>
+  <path d="M160 70 L154 80 L167 73 Z" fill="#ffffff" stroke="#2F7A56" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M163 61 l4.5 4.5 9 -10" stroke="#2F7A56" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
 function sha256(ascii){
@@ -928,6 +988,7 @@ function startCall(){
   setTop("進め方を選ぶ", 0);
   setActions(null);
   document.getElementById('screen').innerHTML = `
+    <div class="step-art">${OPERATOR_SVG}</div>
     <div class="step-title"><span class="step-num">▶</span><h2>進め方を選んでください</h2></div>
     <p class="step-when">どちらを選んでも<b>中身（セリフ・流れ）は全く同じ</b>です。やりやすい方をどうぞ。</p>
     <button class="mode-card go" onclick="chooseMode('navi')">
@@ -1155,7 +1216,8 @@ const NODES = {
   },
   s2:{ no:2, title:'担当者と話す', h:'担当者と話す', when:'ご本人が電話口に出たら',
     body:()=>
-      fSay({
+      `<div class="step-art">${CLIENT_SVG}</div>`
+      + fSay({
         q:`お忙しいところ恐れ入ります。${selfShort(SELF.company)}の${selfShort(SELF.caller)}と申します。`,
         small:'弊社は愛知県で小売業を営んでおり、現在はECショップを運営しており、将来的には実店舗も見据えております。商品ラインナップの幅を広げようと検討していたところ、御社のHPで取り扱い商品を拝見し、ぜひ<b>新たな仕入れ候補</b>として検討させていただきたくご連絡いたしました。'
       })
