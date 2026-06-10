@@ -193,6 +193,7 @@
   .badge.見送り{background:#EEE;color:#777;}
   .badge.担当不在{background:var(--branch-bg);color:var(--branch-ink);}
   .badge.受付拒否{background:var(--red-bg);color:var(--red);}
+  .badge.卸紹介{background:var(--say-bg);color:var(--indigo);}
   .badge.途中終了{background:#EEE;color:#777;}
   .rec .del{background:none;border:none;color:#c9bda7;font-size:20px;cursor:pointer;padding:2px 4px;line-height:1;}
   .empty{text-align:center;color:var(--ink-soft);font-size:13.5px;padding:24px 10px;}
@@ -474,7 +475,7 @@ function newCall(){
   return {
     id: String(Date.now()),
     createdAt: new Date().toISOString(),
-    company:"", product1:"", product2:"", product3:"", product4:"", productSize:"", productRate:"",
+    company:"", product1:"", product2:"", product3:"", product4:"", productSize:"", productRate:"", distributor:"",
     contactName:"", contactEmail:"", contactDept:"", contactPhone:"",
     sendRoute:"", formUrl:"", sendDate:"",
     result:"", note:""
@@ -640,6 +641,7 @@ function exportCSV(){
     ["contactName","担当者名"],["contactDept","部署・役職"],
     ["contactEmail","送り先メール"],["sendRoute","送り方"],["formUrl","フォームURL・宛先"],
     ["contactPhone","電話"],["sendDate","こちらの送付予定"],
+    ["distributor","卸・商社（紹介）"],
     ["result","結果"],["note","メモ"]
   ];
   const head = cols.map(c=>c[1]).join(",");
@@ -716,6 +718,7 @@ function abortPicker(){
     desc:"今回の結果を選んでください。",
     choices:[
       {label:"成立（送り先OK）",result:"成立",cls:"g"},
+      {label:"卸・商社の紹介",result:"卸紹介",cls:"y"},
       {label:"見送り",result:"見送り",cls:"y"},
       {label:"担当不在",result:"担当不在",cls:"y"},
       {label:"受付拒否",result:"受付拒否",cls:"r"},
@@ -873,9 +876,21 @@ const NODES = {
     branchLead:'◇ 相手の返事は？',
     branches:[
       {style:'go', bt:'✅ 扱っている', desc:'送り先の確認へ', goto:'s4'},
+      {style:'', bt:'🏢 直接の取引はしていない と言われた', desc:'卸・商社を教えてもらう', goto:'s3_dist'},
       {style:'', bt:'🔁 その商品はない／終了', desc:'類似品を聞く', goto:'s3_alt'}
     ],
     naviActions:[{label:'終了', cls:'btn-ghost', abort:true}]
+  },
+  s3_dist:{ no:3, isSub:true, title:'商品を伝える', h:'「直接の取引はしていない」と言われたら', when:'仕入れ先の卸・商社を教えてもらいます',
+    body:()=>
+      fSay({q:'さようでございますか。それでしたら、御社の商品をお取り扱いしている<b>卸会社や商社</b>などを、よろしければお教えいただけますでしょうか？そちらへご連絡してみたく存じます。'})
+      + fField({label:'教えてもらった卸・商社名（メモ）', bind:'distributor', ph:'例）〇〇卸 株式会社／△△商事'}),
+    branchLead:'◇ どうなりましたか？',
+    branches:[
+      {style:'go', bt:'✅ 卸・商社を教えてもらえた', desc:'お礼へ（記録に残ります）', goto:'s6'},
+      {style:'warn', bt:'✖ 教えてもらえなかった', desc:'「見送り」で記録して終了', result:'見送り'}
+    ],
+    naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
   },
   s3_alt:{ no:3, isSub:true, title:'商品を伝える', h:'その商品が無いとき', when:'近い商品でも構いません',
     body:()=> fSay({q:'でしたら、近い商品でも構いません。御社で今お出しできる類似品はございますか？'}),
@@ -980,7 +995,7 @@ function prepRender(){
 
 /* ナビ型の遷移テーブル */
 const STEPS = { prep: prepRender };
-['s1','s1_none','s1_absent','s2','s3','s3_alt','s4','s4_form','s5','s6'].forEach(id=>{
+['s1','s1_none','s1_absent','s2','s3','s3_dist','s3_alt','s4','s4_form','s5','s6'].forEach(id=>{
   STEPS[id] = ()=> naviRender(id);
 });
 
@@ -1053,6 +1068,7 @@ function renderScroll(){
       <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 6px;">下のバーのボタンか、ここから選べます。</p>
       <div class="result-grid">
         <button class="rbtn g" onclick="syncInputs();finishWith('成立')">成立（送り先OK）</button>
+        <button class="rbtn y" onclick="syncInputs();finishWith('卸紹介')">卸・商社の紹介</button>
         <button class="rbtn y" onclick="syncInputs();finishWith('見送り')">見送り</button>
         <button class="rbtn y" onclick="syncInputs();finishWith('担当不在')">担当不在</button>
         <button class="rbtn r" onclick="syncInputs();finishWith('受付拒否')">受付拒否</button>
