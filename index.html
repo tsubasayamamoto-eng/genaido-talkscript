@@ -126,6 +126,10 @@
   .field input:focus, .field textarea:focus{outline:none;border-color:var(--indigo-soft);}
   .field .hint{font-size:12px;color:var(--ink-soft);margin-top:4px;}
   .field textarea{min-height:64px;resize:vertical;}
+  .addbtn{display:inline-flex;align-items:center;gap:6px;margin:2px 0 4px;
+    background:#fff;border:1.5px dashed var(--indigo-soft);color:var(--indigo);
+    border-radius:10px;padding:9px 14px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .addbtn:active{transform:scale(.98);}
 
   .panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0;}
   .panel h3{margin:0 0 4px;font-size:15px;color:var(--coral);}
@@ -475,7 +479,8 @@ function newCall(){
   return {
     id: String(Date.now()),
     createdAt: new Date().toISOString(),
-    company:"", product1:"", product2:"", product3:"", product4:"", productSize:"", productRate:"", distributor:"",
+    company:"", product1:"", product2:"", product3:"", product4:"", productSize:"", productRate:"",
+    distributor1:"", distributor2:"", distributor3:"", distributor4:"",
     contactName:"", contactEmail:"", contactDept:"", contactPhone:"",
     sendRoute:"", formUrl:"", sendDate:"",
     result:"", note:""
@@ -631,6 +636,10 @@ function delRecord(id){
   goHome();
 }
 
+function recDistJoined(r){
+  return [r.distributor1,r.distributor2,r.distributor3,r.distributor4,r.distributor]
+    .map(x=>(x||'').trim()).filter(Boolean).join(' / ');
+}
 function exportCSV(){
   const list = loadRecords();
   if(list.length===0){ toast("記録がありません"); return; }
@@ -641,12 +650,15 @@ function exportCSV(){
     ["contactName","担当者名"],["contactDept","部署・役職"],
     ["contactEmail","送り先メール"],["sendRoute","送り方"],["formUrl","フォームURL・宛先"],
     ["contactPhone","電話"],["sendDate","こちらの送付予定"],
-    ["distributor","卸・商社（紹介）"],
+    [recDistJoined,"卸・商社（紹介）"],
     ["result","結果"],["note","メモ"]
   ];
   const head = cols.map(c=>c[1]).join(",");
   const rows = list.map(r=> cols.map(c=>{
-    let v = c[0]==="createdAt" ? new Date(r.finishedAt||r.createdAt).toLocaleString('ja-JP') : (r[c[0]]||"");
+    let v;
+    if(typeof c[0]==="function") v = c[0](r);
+    else if(c[0]==="createdAt") v = new Date(r.finishedAt||r.createdAt).toLocaleString('ja-JP');
+    else v = r[c[0]]||"";
     v = String(v).replace(/"/g,'""');
     return /[",\n]/.test(v) ? `"${v}"` : v;
   }).join(",")).join("\r\n");
@@ -764,16 +776,41 @@ function fField(b){
     : `<input type="text"${b.inputmode?` inputmode="${b.inputmode}"`:''} data-bind="${b.bind}" value="${esc(cur[b.bind]||'')}" placeholder="${b.ph||''}">`;
   return `<div class="field">${b.label?`<label>${b.label}</label>`:''}${tag}${b.hint?`<div class="hint">${b.hint}</div>`:''}</div>`;
 }
+function maru(i){ return ['①','②','③','④','⑤','⑥'][i] || ('('+(i+1)+')'); }
+/* 「＋追加」で増やせる入力グループ（最初は入力済みの数だけ表示） */
+function fRepeat(o){
+  const vals = o.binds.map(b=>(cur[b]||'').trim());
+  let lastFilled = 0;
+  vals.forEach((v,i)=>{ if(v) lastFilled = i; });
+  const visible = Math.max(1, lastFilled+1);
+  const fields = o.binds.map((b,i)=>{
+    const hide = i >= visible ? ' hidden' : '';
+    return `<div class="repeat-item${hide}">${fField({label:o.labelEach(i), bind:b, ph:o.ph?o.ph(i):''})}</div>`;
+  }).join('');
+  const btnHide = visible >= o.binds.length ? ' hidden' : '';
+  return `<div class="repeat-group">${fields}
+    <button type="button" class="addbtn${btnHide}" onclick="repeatAdd(this)">${o.addLabel}</button></div>`;
+}
+function repeatAdd(btn){
+  const group = btn.closest('.repeat-group');
+  const next = group.querySelector('.repeat-item.hidden');
+  if(next){ next.classList.remove('hidden'); }
+  if(!group.querySelector('.repeat-item.hidden')) btn.classList.add('hidden');
+  const inp = next && next.querySelector('input,textarea');
+  if(inp) inp.focus();
+}
 function fSelfname(){
   return `<div class="panel indigo"><h3>自分の名乗り（変わりません）</h3>
     <p class="ph" style="margin:0">「${SELF.company}の${SELF.caller}」と名乗ります。</p></div>`;
 }
 function fMemo(){
   return `<div class="panel"><h3>📝 今回お伝えする商品</h3>
-    ${fField({label:'商品名①',bind:'product1',ph:'例）〇〇クリーム 50g'})}
-    ${fField({label:'商品名②（任意）',bind:'product2',ph:'例）△△ローション'})}
-    ${fField({label:'商品名③（任意）',bind:'product3',ph:'例）□□美容液'})}
-    ${fField({label:'商品名④（任意）',bind:'product4',ph:'例）◇◇マスク'})}
+    ${fRepeat({
+      binds:['product1','product2','product3','product4'],
+      labelEach:i=>'商品名'+maru(i),
+      ph:i=>i===0?'例）〇〇クリーム 50g':'例）追加の商品名',
+      addLabel:'＋ 商品を追加',
+    })}
     ${fField({label:'容量・サイズ',bind:'productSize',ph:'例）50g／Mサイズ など'})}
     ${fField({label:'希望掛け率',bind:'productRate',ph:'例）60% など'})}</div>`;
 }
@@ -883,8 +920,13 @@ const NODES = {
   },
   s3_dist:{ no:3, isSub:true, title:'商品を伝える', h:'「直接の取引はしていない」と言われたら', when:'仕入れ先の卸・商社を教えてもらいます',
     body:()=>
-      fSay({q:'さようでございますか。それでしたら、御社の商品をお取り扱いしている<b>卸会社や商社</b>などを、よろしければお教えいただけますでしょうか？そちらへご連絡してみたく存じます。'})
-      + fField({label:'教えてもらった卸・商社名（メモ）', bind:'distributor', ph:'例）〇〇卸 株式会社／△△商事'}),
+      fSay({q:'さようでございますか。それでしたら、御社の商品をお取り扱いしている<b>卸会社や商社</b>などを、もしよろしければお教えいただくことは出来ますでしょうか？'})
+      + fRepeat({
+          binds:['distributor1','distributor2','distributor3','distributor4'],
+          labelEach:i=>'卸・商社名'+maru(i)+'（メモ）',
+          ph:i=>'例）〇〇卸 株式会社／△△商事',
+          addLabel:'＋ 卸・商社を追加',
+        }),
     branchLead:'◇ どうなりましたか？',
     branches:[
       {style:'go', bt:'✅ 卸・商社を教えてもらえた', desc:'お礼へ（記録に残ります）', goto:'s6'},
