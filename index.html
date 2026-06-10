@@ -254,6 +254,7 @@
   .badge.担当不在{background:var(--branch-bg);color:var(--branch-ink);}
   .badge.受付拒否{background:var(--red-bg);color:var(--red);}
   .badge.卸紹介{background:var(--say-bg);color:var(--indigo);}
+  .badge.再架電{background:#E7EEF6;color:#3A5A8C;}
   .badge.途中終了{background:#EEE;color:#777;}
   .rec .del{background:none;border:none;color:#c9bda7;font-size:20px;cursor:pointer;padding:2px 4px;line-height:1;}
   .rec .recmain{cursor:pointer;border-radius:8px;}
@@ -896,6 +897,7 @@ function recCard(r){
   const prods = recProductsJoined(r).replace(/ \/ /g, "・");
   const sub = [prods, r.contactName?("→"+r.contactName):"" ].filter(Boolean).join("　");
   const chips = [];
+  if(r.result==='再架電') chips.push('<span class="chip" style="background:#E7EEF6;color:#3A5A8C">📞 要・再架電</span>');
   if((r.referralMaker||'').trim()) chips.push('<span class="chip" style="background:var(--say-bg);color:var(--indigo)">🔗 紹介から架電</span>');
   if(r.mailSent) chips.push('<span class="chip chip-sent">✅ メール送信済み</span>');
   if(recDistJoined(r)) chips.push('<span class="chip chip-dist">🏢 商社紹介あり</span>');
@@ -964,7 +966,7 @@ function openEditModal(id){
   const base = newCall();
   Object.keys(base).forEach(k=>{ if(cur[k]===undefined) cur[k]=base[k]; });
   cur.id = r.id;
-  const RESULTS = ['成立','卸紹介','見送り','担当不在','受付拒否','途中終了'];
+  const RESULTS = ['成立','卸紹介','再架電','見送り','担当不在','受付拒否','途中終了'];
   const back = document.createElement('div'); back.className='modal-back';
   back.innerHTML = `<div class="modal editmodal">
     <h3>✏️ 記録を編集</h3>
@@ -1353,6 +1355,7 @@ function abortPicker(){
     choices:[
       {label:"成立（送り先OK）",result:"成立",cls:"g"},
       {label:"卸・商社の紹介",result:"卸紹介",cls:"y"},
+      {label:"再架電（後日かけ直す）",result:"再架電",cls:"y"},
       {label:"見送り",result:"見送り",cls:"y"},
       {label:"担当不在",result:"担当不在",cls:"y"},
       {label:"受付拒否",result:"受付拒否",cls:"r"},
@@ -1486,6 +1489,7 @@ function fResultGrid(){
     <div class="result-grid">
       <button class="rbtn g" onclick="syncInputs();finishWith('成立')">成立（送り先OK）</button>
       <button class="rbtn y" onclick="syncInputs();finishWith('卸紹介')">卸・商社の紹介</button>
+      <button class="rbtn y" onclick="syncInputs();finishWith('再架電')">再架電（後日）</button>
       <button class="rbtn y" onclick="syncInputs();finishWith('見送り')">見送り</button>
       <button class="rbtn y" onclick="syncInputs();finishWith('担当不在')">担当不在</button>
       <button class="rbtn r" onclick="syncInputs();finishWith('受付拒否')">受付拒否</button>
@@ -1541,12 +1545,19 @@ const NODES = {
     ],
     naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
   },
-  s1_none:{ no:1, isSub:true, title:'受付突破', h:'「担当はいない」と言われたら', when:'まずこのセリフで切り返します',
-    body:()=> fSay({q:'それであれば、<br>こちらの件でお話のわかる方におつなぎいただけますか？'}),
-    branchLead:'◇ つながりましたか？',
+  s1_none:{ no:1, isSub:true, title:'受付突破', h:'「担当はいない」と言われたら', when:'まず取り次ぎ→ダメなら名前を伺います',
+    body:()=>
+      fSay({q:'それであれば、<br>こちらの件でお話のわかる方におつなぎいただけますか？'})
+      + fNote({bold:true, html:'↓ それでも「取り次げない」と言われたら、かけ直すためにお名前を伺います'})
+      + fSay({q:'さようでございますか。<br>それでは改めてお電話させていただきますので、<br>ご担当者様のお名前を教えていただくことはできますでしょうか？'}),
+    naviExtra:()=>
+      fField({label:'ご担当者名（聞けたら記入）', bind:'contactName', ph:'例）営業部 佐藤様'})
+      + fField({label:'かけ直しメモ（戻り時間・部署など／任意）', bind:'note', area:true, ph:'例）午後なら在席／営業部'}),
+    branchLead:'◇ どうなりましたか？',
     branches:[
       {style:'go', bt:'✅ つながった', desc:'担当者と話すへ', goto:'s2'},
-      {style:'warn', bt:'✖ それでも断られた', desc:'「受付拒否」で記録して終了', result:'受付拒否'}
+      {style:'', bt:'📛 担当者名を教えてもらえた', desc:'「再架電」で記録（後日かけ直す）', result:'再架電'},
+      {style:'warn', bt:'✖ 取り次ぎも名前も断られた', desc:'「受付拒否」で記録して終了', result:'受付拒否'}
     ],
     naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
   },
