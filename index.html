@@ -881,7 +881,7 @@ function restProductsText(){
 function fProductSay(){
   const p1 = (cur.product1||'').trim() ? esc(cur.product1.trim()) : '〔商品名①〕';
   return fSay({
-    q:`実は、御社の「<span class="prodref">${p1}</span>」という商品を、ぜひ弊社で取り扱わせていただきたく思っておりまして、お取り扱いの条件など、ご相談させていただけますでしょうか？`,
+    q:`実は、御社の「<span class="prodref">${p1}</span>」という商品を、ぜひ弊社で取り扱わせていただきたく思っておりまして、ご相談させていただきたく、もしよろしければお見積書をいただくことは出来ますでしょうか？`,
     small:`<span class="prodrest">${restProductsText()}</span>`
   });
 }
