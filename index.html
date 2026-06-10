@@ -1466,7 +1466,7 @@ const NODES = {
     body:()=>{
       const from = refFrom();
       const q = from
-        ? `お世話になっております。<br>${SELF.company}の${selfShort(SELF.caller)}と申します。<br>${from}より商品をご紹介いただき、<br>ご連絡させていただきました。<br>ご担当者の方はお見えでしょうか？`
+        ? `お世話になっております。<br>${SELF.company}の${selfShort(SELF.caller)}と申します。<br>${from}より御社をご紹介いただき、<br>ご連絡させていただきました。<br>ご担当者の方はお見えでしょうか？`
         : `お世話になっております。<br>${SELF.company}の${selfShort(SELF.caller)}と申します。<br>御社HPの商品ラインナップを拝見させていただき、<br>商品のお見積書をいただきたくご連絡させていただきました。<br>ご担当者の方はお見えでしょうか？`;
       const yoken = from
         ? `${esc((cur.referralMaker||'').trim())}様からのご紹介で、<b>商品のお取り扱い・お見積りのご相談</b>とお伝えください。`
