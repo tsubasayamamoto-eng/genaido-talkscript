@@ -471,7 +471,7 @@ function newCall(){
   return {
     id: String(Date.now()),
     createdAt: new Date().toISOString(),
-    company:"", productName:"", productSize:"", productRate:"",
+    company:"", product1:"", product2:"", product3:"", product4:"", productSize:"", productRate:"",
     contactName:"", contactEmail:"", contactDept:"", contactPhone:"",
     sendRoute:"", formUrl:"", sendDate:"",
     result:"", note:""
@@ -584,7 +584,8 @@ function goHome(){
       const t = new Date(r.finishedAt||r.createdAt);
       const ts = `${t.getMonth()+1}/${t.getDate()} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
       const co = r.company || "（会社名なし）";
-      const sub = [r.productName, r.contactName?("→"+r.contactName):"" ].filter(Boolean).join("　");
+      const prods = [r.product1,r.product2,r.product3,r.product4,r.productName].map(x=>(x||"").trim()).filter(Boolean).join("・");
+      const sub = [prods, r.contactName?("→"+r.contactName):"" ].filter(Boolean).join("　");
       return `<div class="rec">
         <div class="recmain">
           <div class="recco">${esc(co)}</div>
@@ -630,7 +631,8 @@ function exportCSV(){
   const list = loadRecords();
   if(list.length===0){ toast("記録がありません"); return; }
   const cols = [
-    ["createdAt","日時"],["company","会社名"],["productName","商品名"],
+    ["createdAt","日時"],["company","会社名"],
+    ["product1","商品名①"],["product2","商品名②"],["product3","商品名③"],["product4","商品名④"],
     ["productSize","容量・サイズ"],["productRate","希望掛け率"],
     ["contactName","担当者名"],["contactDept","部署・役職"],
     ["contactEmail","送り先メール"],["sendRoute","送り方"],["formUrl","フォームURL・宛先"],
@@ -759,13 +761,21 @@ function fSelfname(){
 }
 function fMemo(){
   return `<div class="panel"><h3>📝 今回お伝えする商品</h3>
-    ${fField({label:'商品名',bind:'productName',ph:'例）〇〇クリーム 50g'})}
+    ${fField({label:'商品名①',bind:'product1',ph:'例）〇〇クリーム 50g'})}
+    ${fField({label:'商品名②（任意）',bind:'product2',ph:'例）△△ローション'})}
+    ${fField({label:'商品名③（任意）',bind:'product3',ph:'例）□□美容液'})}
+    ${fField({label:'商品名④（任意）',bind:'product4',ph:'例）◇◇マスク'})}
     ${fField({label:'容量・サイズ',bind:'productSize',ph:'例）50g／Mサイズ など'})}
     ${fField({label:'希望掛け率',bind:'productRate',ph:'例）60% など'})}</div>`;
 }
+function memoRefInner(){
+  const ps = [cur.product1,cur.product2,cur.product3,cur.product4].map(x=>(x||'').trim()).filter(Boolean);
+  const names = ps.length ? ps.map(esc).join('　／　') : '（上で記入）';
+  return `商品名：<b>${names}</b><br>容量・サイズ：${esc(cur.productSize||'—')}　／　希望掛け率：${esc(cur.productRate||'—')}`;
+}
 function fMemoReadonly(){
   return `<div class="panel"><h3>📝 今回お伝えする商品</h3>
-    <p class="ph" style="margin:0">商品名：<b class="refName">${esc(cur.productName||'（上で記入）')}</b>　／　容量・サイズ：<span class="refSize">${esc(cur.productSize||'—')}</span>　／　希望掛け率：<span class="refRate">${esc(cur.productRate||'—')}</span></p></div>`;
+    <p class="ph prodmemo-ro" style="margin:0;line-height:1.9">${memoRefInner()}</p></div>`;
 }
 function fGoal(){
   return `<p style="font-size:13px;color:var(--ink-soft);">ゴール＝<b>商品名を伝える → 送り先（メール または 問い合わせフォーム）を確認 → こちらから資料・お見積りのご相談を送る</b>。<br>先方に送ってもらう手間はかけません。断られても、すぐ切らずに切り返してから次へ進みます。</p>`;
@@ -785,11 +795,17 @@ function fRecord(){
     fField({label:'⑦ こちらの送付予定（いつ送るか）',bind:'sendDate',ph:'例）本日中／明日の午前 など',hint:'「本日中にお送りします」など、こちらから伝えましょう。'})
   ].join('');
 }
+function restProductsText(){
+  const ps = [cur.product2,cur.product3,cur.product4].map(x=>(x||'').trim()).filter(Boolean);
+  return ps.length
+    ? `あわせて「${ps.map(esc).join('」「')}」なども、ご相談できれば幸いです。`
+    : '（複数あれば）あわせて別の商品なども、ご相談できれば幸いです。';
+}
 function fProductSay(){
-  const p1 = cur.productName ? esc(cur.productName) : '〔商品名〕';
+  const p1 = (cur.product1||'').trim() ? esc(cur.product1.trim()) : '〔商品名①〕';
   return fSay({
     q:`実は、御社の「<span class="prodref">${p1}</span>」という商品を、ぜひ弊社で取り扱わせていただきたく思っておりまして、お取り扱いの条件など、ご相談させていただけますでしょうか？`,
-    small:'（複数あれば）あわせて別の商品なども、ご相談できれば幸いです。'
+    small:`<span class="prodrest">${restProductsText()}</span>`
   });
 }
 
@@ -1048,11 +1064,10 @@ function renderScroll(){
   // 商品名などを入力したら、参照表示をその場で更新
   screen.addEventListener('input', ()=>{
     syncInputs();
-    const pn = cur.productName || '〔商品名〕';
-    screen.querySelectorAll('.prodref').forEach(el=> el.textContent = pn);
-    screen.querySelectorAll('.refName').forEach(el=> el.textContent = cur.productName || '（上で記入）');
-    screen.querySelectorAll('.refSize').forEach(el=> el.textContent = cur.productSize || '—');
-    screen.querySelectorAll('.refRate').forEach(el=> el.textContent = cur.productRate || '—');
+    const p1 = (cur.product1||'').trim() || '〔商品名①〕';
+    screen.querySelectorAll('.prodref').forEach(el=> el.textContent = p1);
+    screen.querySelectorAll('.prodrest').forEach(el=> el.innerHTML = restProductsText());
+    screen.querySelectorAll('.prodmemo-ro').forEach(el=> el.innerHTML = memoRefInner());
   });
 
   setActions([
