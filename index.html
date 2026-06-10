@@ -136,6 +136,9 @@
     background:#fff;color:var(--red);border-radius:10px;font-size:20px;font-weight:700;
     cursor:pointer;line-height:1;}
   .rmbtn:active{transform:scale(.92);background:var(--red-bg);}
+  .dup-warn{background:var(--red-bg);border:1.5px solid var(--red);color:var(--red);
+    border-radius:10px;padding:10px 12px;font-size:13px;font-weight:700;margin:2px 0 12px;line-height:1.65;}
+  .dup-warn b{color:var(--red);}
 
   .panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0;}
   .panel h3{margin:0 0 4px;font-size:15px;color:var(--coral);}
@@ -774,6 +777,37 @@ function openDetailModal(id){
   document.body.appendChild(back);
 }
 
+/* ===================== 架電重複チェック（会社名） ===================== */
+function normalizeCo(s){
+  return (s||'').toLowerCase()
+    .replace(/[\s　]/g,'')
+    .replace(/(株式会社|有限会社|合同会社|合資会社|合名会社|（株）|\(株\)|（有）|\(有\)|㈱|㈲)/g,'');
+}
+function findDupCompany(name){
+  const n = normalizeCo(name);
+  if(n.length < 2) return null;
+  const matches = loadRecords().filter(r=> normalizeCo(r.company)===n);
+  return matches.length ? matches : null;
+}
+function dupSummary(matches){
+  const m = matches[0];
+  const t = new Date(m.finishedAt||m.createdAt);
+  const ts = `${t.getFullYear()}/${t.getMonth()+1}/${t.getDate()}`;
+  return `${ts}・${m.result||'記録あり'}` + (matches.length>1 ? ` ほか${matches.length-1}件` : '');
+}
+function fCompanyField(){
+  return fField({label:'相手の会社名', bind:'company', ph:'例）〇〇商事 株式会社'})
+    + `<div class="dup-warn hidden" id="dupWarn"></div>`;
+}
+function checkDupCompany(val){
+  const warn = document.getElementById('dupWarn');
+  if(!warn) return;
+  const matches = findDupCompany(val);
+  if(!matches){ warn.classList.add('hidden'); warn.innerHTML=''; return; }
+  warn.innerHTML = `⚠️ この会社は<b>過去に架電済み</b>です（${dupSummary(matches)}）。架電が重複していないかご確認ください。`;
+  warn.classList.remove('hidden');
+}
+
 function recProductsJoined(r){
   return PRODUCT_BINDS.map(b=>r[b]).concat([r.productName])
     .map(x=>(x||'').trim()).filter(Boolean).join(' / ');
@@ -1257,12 +1291,18 @@ function prepRender(){
     <div class="step-title"><span class="step-num">📋</span><h2>かける前に</h2></div>
     <p class="step-when">相手の会社名と、今回すすめる商品をメモしておきます（後で記録に残ります）。</p>
     ${fSelfname()}
-    ${fField({label:'相手の会社名', bind:'company', ph:'例）〇〇商事 株式会社'})}
+    ${fCompanyField()}
     ${fMemo()}
     ${fGoal()}
   `;
+  checkDupCompany(cur.company);
   setActions([
-    {label:"📞 架電スタート", cls:"btn-primary", onClick:()=>{ syncInputs(); go('s1'); }}
+    {label:"📞 架電スタート", cls:"btn-primary", onClick:()=>{
+      syncInputs();
+      const dup = findDupCompany(cur.company);
+      if(dup && !confirm(`「${cur.company}」は過去に架電済みの可能性があります。\n（${dupSummary(dup)}）\n\n架電が重複するかもしれません。このまま進めますか？`)) return;
+      go('s1');
+    }}
   ]);
 }
 
@@ -1329,7 +1369,7 @@ function renderScroll(){
     <p class="step-when">上から順に。🗣のセリフを読み、済んだら右の<b>✓</b>を押すと色が変わります。<b>中身はナビ型と同じ</b>です。</p>`;
 
   const prepInner = `${fSelfname()}
-    ${fField({label:'相手の会社名', bind:'company', ph:'例）〇〇商事 株式会社'})}
+    ${fCompanyField()}
     ${fMemo()}
     ${fGoal()}`;
 
@@ -1372,6 +1412,13 @@ function renderScroll(){
 }
 
 /* ===================== 起動 ===================== */
+// 会社名を入力したら、過去の架電と重複していないかその場でチェック
+document.addEventListener('input', function(e){
+  const t = e.target;
+  if(t && t.getAttribute && t.getAttribute('data-bind')==='company'){
+    checkDupCompany(t.value);
+  }
+});
 initAuth();
 goHome();
 </script>
