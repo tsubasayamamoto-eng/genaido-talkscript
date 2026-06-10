@@ -209,7 +209,48 @@
   .badge.卸紹介{background:var(--say-bg);color:var(--indigo);}
   .badge.途中終了{background:#EEE;color:#777;}
   .rec .del{background:none;border:none;color:#c9bda7;font-size:20px;cursor:pointer;padding:2px 4px;line-height:1;}
+  .rec .recmain{cursor:pointer;border-radius:8px;}
+  .rec .recmain:active{opacity:.6;}
+  .recco .go-detail{color:var(--indigo-soft);font-weight:700;margin-left:4px;}
   .empty{text-align:center;color:var(--ink-soft);font-size:13.5px;padding:24px 10px;}
+
+  /* Month folders */
+  .list-hint{font-size:12px;color:var(--ink-soft);margin:0 4px 12px;}
+  .month-folder{margin:0 0 16px;}
+  .month-head{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:var(--indigo);color:#fff;border:none;border-radius:12px;padding:11px 15px;
+    font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;}
+  .month-head:active{filter:brightness(1.1);}
+  .month-head .mh-right{font-size:12.5px;font-weight:700;opacity:.92;display:flex;align-items:center;gap:8px;}
+  .mh-caret{transition:transform .2s ease;display:inline-block;}
+  .month-folder.collapsed .month-body{display:none;}
+  .month-folder.collapsed .mh-caret{transform:rotate(-90deg);}
+
+  /* Quick chips on a record */
+  .rec-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;}
+  .chip{font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;}
+  .chip-dist{background:var(--branch-bg);color:var(--branch-ink);border:1px solid #e6d6b0;}
+  .chip-mail{background:var(--green-bg);color:var(--green);}
+  .chip-form{background:var(--say-bg);color:var(--indigo);}
+  .chip-note{background:#F0EDE6;color:var(--ink-soft);}
+
+  /* Detail modal */
+  .detailmodal{max-height:90vh;overflow-y:auto;}
+  .dt-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px;}
+  .dt-head h3{margin:0;font-size:18px;color:var(--indigo);}
+  .dt-time{margin:0 0 12px;font-size:12.5px;color:var(--ink-soft);}
+  .dt-flag{background:var(--branch-bg);color:var(--branch-ink);border:1px solid #e6d6b0;border-radius:11px;
+    padding:11px 13px;font-size:13.5px;font-weight:700;margin:0 0 13px;line-height:1.7;}
+  .dt-flag b{color:#6f4f12;font-size:14.5px;}
+  .dt-sec{margin:0 0 13px;}
+  .dt-sec-t{font-size:12.5px;font-weight:700;color:var(--indigo);margin:0 0 7px;
+    border-bottom:1.5px solid var(--line);padding-bottom:5px;}
+  .dt-prod{font-size:14.5px;padding:3px 0;color:var(--ink);}
+  .dt-row{display:flex;gap:10px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:14px;}
+  .dt-row:last-child{border-bottom:none;}
+  .dt-k{flex:0 0 100px;color:var(--ink-soft);font-size:12.5px;font-weight:700;}
+  .dt-v{flex:1;word-break:break-all;color:var(--ink);}
+  .dt-note{font-size:14px;white-space:pre-wrap;background:var(--paper);border-radius:9px;padding:11px;line-height:1.7;}
 
   /* Result picker (abort / finish) */
   .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0;}
@@ -617,22 +658,21 @@ function goHome(){
   if(records.length===0){
     recHtml = `<div class="empty">まだ記録はありません。<br>上のボタンから架電を始めましょう。</div>`;
   }else{
-    recHtml = records.map(r=>{
-      const t = new Date(r.finishedAt||r.createdAt);
-      const ts = `${t.getMonth()+1}/${t.getDate()} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
-      const co = r.company || "（会社名なし）";
-      const prods = recProductsJoined(r).replace(/ \/ /g, "・");
-      const sub = [prods, r.contactName?("→"+r.contactName):"" ].filter(Boolean).join("　");
-      return `<div class="rec">
-        <div class="rec-top">
-          <div class="recmain">
-            <div class="recco">${esc(co)}</div>
-            <div class="recsub">${ts}${sub?("　"+esc(sub)):""}</div>
-          </div>
-          <span class="badge ${r.result||'途中終了'}">${r.result||'途中終了'}</span>
-          <button class="del" title="削除" onclick="delRecord('${r.id}')">×</button>
-        </div>
-        <button class="mailbtn" onclick="openMailModal('${r.id}')">✉️ メールを作成（宛先・件名・本文を自動入力）</button>
+    const groups = []; const map = {};
+    records.forEach(r=>{
+      const k = monthKey(r);
+      if(!map[k]){ map[k] = {key:k, items:[]}; groups.push(map[k]); }
+      map[k].items.push(r);
+    });
+    recHtml = `<p class="list-hint">💡 会社名をタップすると、入力した内容の詳細が見られます。</p>`
+      + groups.map((g,gi)=>{
+      const collapsed = gi>0 ? ' collapsed' : '';
+      return `<div class="month-folder${collapsed}">
+        <button class="month-head" onclick="toggleMonth(this)">
+          <span>📁 ${monthLabel(g.key)}</span>
+          <span class="mh-right">${g.items.length}件 <span class="mh-caret">▾</span></span>
+        </button>
+        <div class="month-body">${g.items.map(recCard).join('')}</div>
       </div>`;
     }).join('');
   }
@@ -665,6 +705,73 @@ function delRecord(id){
   if(!confirm("この記録を削除しますか？")) return;
   saveRecords(loadRecords().filter(r=>r.id!==id));
   goHome();
+}
+
+/* ===================== 一覧（月別フォルダ・カード・詳細） ===================== */
+function pad2(n){ return String(n).padStart(2,'0'); }
+function monthKey(r){ const d=new Date(r.finishedAt||r.createdAt); return d.getFullYear()+'-'+pad2(d.getMonth()+1); }
+function monthLabel(k){ const a=k.split('-'); return a[0]+'年'+parseInt(a[1],10)+'月'; }
+function toggleMonth(btn){ btn.closest('.month-folder').classList.toggle('collapsed'); }
+
+function recCard(r){
+  const t = new Date(r.finishedAt||r.createdAt);
+  const ts = `${t.getMonth()+1}/${t.getDate()} ${pad2(t.getHours())}:${pad2(t.getMinutes())}`;
+  const co = r.company || "（会社名なし）";
+  const prods = recProductsJoined(r).replace(/ \/ /g, "・");
+  const sub = [prods, r.contactName?("→"+r.contactName):"" ].filter(Boolean).join("　");
+  const chips = [];
+  if(recDistJoined(r)) chips.push('<span class="chip chip-dist">🏢 商社紹介あり</span>');
+  if((r.contactEmail||'').trim()) chips.push('<span class="chip chip-mail">✉️ 宛先あり</span>');
+  if((r.sendRoute||'').includes('フォーム') || (r.formUrl||'').trim()) chips.push('<span class="chip chip-form">📋 フォーム</span>');
+  if((r.note||'').trim()) chips.push('<span class="chip chip-note">📝 メモ</span>');
+  const chipsHtml = chips.length ? `<div class="rec-chips">${chips.join('')}</div>` : '';
+  return `<div class="rec">
+    <div class="rec-top">
+      <div class="recmain" onclick="openDetailModal('${r.id}')">
+        <div class="recco">${esc(co)}<span class="go-detail">›</span></div>
+        <div class="recsub">${ts}${sub?("　"+esc(sub)):""}</div>
+      </div>
+      <span class="badge ${r.result||'途中終了'}">${r.result||'途中終了'}</span>
+      <button class="del" title="削除" onclick="delRecord('${r.id}')">×</button>
+    </div>
+    ${chipsHtml}
+    <button class="mailbtn" onclick="openMailModal('${r.id}')">✉️ メールを作成（宛先・件名・本文を自動入力）</button>
+  </div>`;
+}
+
+function openDetailModal(id){
+  const r = loadRecords().find(x=>x.id===id);
+  if(!r){ toast("記録が見つかりません"); return; }
+  const t = new Date(r.finishedAt||r.createdAt);
+  const ts = `${t.getFullYear()}/${t.getMonth()+1}/${t.getDate()} ${pad2(t.getHours())}:${pad2(t.getMinutes())}`;
+  const products = PRODUCT_BINDS.map(b=>r[b]).concat([r.productName]).map(x=>(x||'').trim()).filter(Boolean);
+  const prodHtml = products.length
+    ? products.map((p,i)=>`<div class="dt-prod">${maru(i)} ${esc(p)}</div>`).join('')
+    : '<div class="dt-prod" style="color:var(--ink-soft)">—</div>';
+  const dist = recDistJoined(r);
+  const row = (k,v)=> (v && String(v).trim()) ? `<div class="dt-row"><div class="dt-k">${k}</div><div class="dt-v">${esc(v)}</div></div>` : '';
+  const back = document.createElement('div'); back.className='modal-back';
+  back.innerHTML = `<div class="modal detailmodal">
+    <div class="dt-head"><h3>${esc(r.company||'（会社名なし）')}</h3>
+      <span class="badge ${r.result||'途中終了'}">${r.result||'途中終了'}</span></div>
+    <p class="dt-time">🕒 ${ts}</p>
+    ${dist?`<div class="dt-flag">🏢 卸・商社を教えてもらいました<br><b>${esc(dist)}</b></div>`:''}
+    <div class="dt-sec"><div class="dt-sec-t">📦 お伝えした商品</div>${prodHtml}
+      ${row('容量・サイズ',r.productSize)}${row('希望掛け率',r.productRate)}</div>
+    <div class="dt-sec"><div class="dt-sec-t">👤 相手・送り先</div>
+      ${row('担当者名',r.contactName)}${row('部署・役職',r.contactDept)}
+      ${row('送り先メール',r.contactEmail)}${row('送り方',r.sendRoute)}
+      ${row('フォームURL・宛先',r.formUrl)}${row('電話',r.contactPhone)}
+      ${row('送付予定',r.sendDate)}
+      ${(!r.contactName&&!r.contactEmail&&!r.contactDept&&!r.contactPhone&&!r.sendRoute&&!r.formUrl&&!r.sendDate)?'<div class="dt-row"><div class="dt-v" style="color:var(--ink-soft)">（未入力）</div></div>':''}</div>
+    ${(r.note&&r.note.trim())?`<div class="dt-sec"><div class="dt-sec-t">📝 メモ</div><div class="dt-note">${esc(r.note)}</div></div>`:''}
+    <button class="btn btn-primary maillink" data-mail="1">✉️ メールを作成</button>
+    <button class="rbtn" style="width:100%;margin-top:10px" data-close="1">閉じる</button>
+  </div>`;
+  back.addEventListener('click', e=>{ if(e.target===back) back.remove(); });
+  back.querySelector('[data-close]').onclick = ()=> back.remove();
+  back.querySelector('[data-mail]').onclick = ()=>{ back.remove(); openMailModal(id); };
+  document.body.appendChild(back);
 }
 
 function recProductsJoined(r){
