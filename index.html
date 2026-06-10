@@ -454,6 +454,13 @@
   .subblock{margin-top:10px;border-left:3px solid var(--indigo-soft);padding-left:11px;}
   .subline{font-size:13px;color:var(--ink-soft);margin:5px 0 0;}
   .subline b{color:var(--ink);}
+  .subresult{display:block;width:100%;text-align:left;cursor:pointer;font-family:inherit;
+    background:var(--say-bg);border:1.5px solid var(--indigo-soft);border-radius:10px;
+    padding:10px 12px;font-size:13.5px;color:var(--indigo);margin:6px 0 0;line-height:1.5;}
+  .subresult b{color:var(--indigo);}
+  .subresult:active{transform:scale(.99);}
+  .subresult.warn{background:var(--red-bg);border-color:var(--red);color:var(--red);}
+  .subresult.warn b{color:var(--red);}
 </style>
 </head>
 <body>
@@ -1562,10 +1569,12 @@ const NODES = {
   s1_absent:{ no:1, isSub:true, title:'受付突破', h:'担当者が不在のとき', when:'戻り時間を聞いてメモします',
     body:()=> fSay({q:'承知しました。<br>普段は午前10時／午後3時、<br>どちらが社内にお見えでしょうか？'}),
     naviExtra:()=> fField({label:'戻り時間・再架電メモ', bind:'note', area:true, ph:'例）明日 午後3時ごろ戻り／〇〇様あて'}),
-    naviActions:[
-      {label:'「担当不在」で記録して終了', cls:'btn-primary', finish:'担当不在'},
-      {label:'戻る', cls:'btn-ghost', back:true}
-    ]
+    branchLead:'◇ どうしますか？（この受付で電話は終了です）',
+    branches:[
+      {style:'go', bt:'📞 後日かけ直す', desc:'「再架電」で記録（折り返し対象）', result:'再架電'},
+      {style:'warn', bt:'担当不在で記録', desc:'「担当不在」で記録して終了', result:'担当不在'}
+    ],
+    naviActions:[{label:'戻る', cls:'btn-ghost', back:true}]
   },
   s2:{ no:2, title:'担当者と話す', h:'担当者と話す', when:'ご本人が電話口に出たら',
     body:()=>{
@@ -1743,8 +1752,13 @@ const STEPS = { prep: prepRender };
 
 /* --- スクロール型：全部を1ページに描画（中身は同じ body() を使用） --- */
 function subBranchInfo(branches){
-  return branches.map(b=>
-    `<p class="subline"><b>${b.bt}</b> … ${b.desc}</p>`).join('');
+  return branches.map(b=>{
+    if(b.result){ // 結果が決まる分岐は、その場で記録できるボタンに
+      const cls = b.style==='warn' ? 'subresult warn' : 'subresult';
+      return `<button type="button" class="${cls}" onclick="syncInputs();finishWith('${b.result}')"><b>${b.bt}</b>　${b.desc}</button>`;
+    }
+    return `<p class="subline"><b>${b.bt}</b> … ${b.desc}</p>`;
+  }).join('');
 }
 /* チェック付きカードの枠 */
 function sCard(numLabel, title, when, inner){
