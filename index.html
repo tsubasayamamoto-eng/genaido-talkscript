@@ -193,8 +193,11 @@
 
   .rec{
     background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:10px;
-    display:flex;align-items:center;gap:12px;
   }
+  .rec-top{display:flex;align-items:center;gap:12px;}
+  .mailbtn{width:100%;margin-top:11px;background:var(--say-bg);border:1.5px solid var(--indigo-soft);
+    color:var(--indigo);border-radius:10px;padding:11px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .mailbtn:active{transform:scale(.99);}
   .rec .recmain{flex:1;min-width:0;}
   .rec .recco{font-weight:700;font-size:15px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .rec .recsub{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
@@ -224,6 +227,19 @@
   .modal{background:var(--paper);width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));}
   .modal h3{margin:2px 0 4px;font-size:18px;color:var(--indigo);}
   .modal p{margin:0 0 14px;font-size:13.5px;color:var(--ink-soft);}
+
+  /* Mail compose modal */
+  .mailmodal{max-height:90vh;overflow-y:auto;}
+  .mailfield{margin:0 0 13px;}
+  .mailfield .mlabel{font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:4px;}
+  .mailfield .mval{background:#fff;border:1px solid var(--line);border-radius:9px;padding:9px 11px;
+    font-size:14.5px;word-break:break-all;color:var(--ink);}
+  .mbody{width:100%;min-height:210px;border:1px solid var(--line);border-radius:9px;padding:11px;
+    font-size:13px;font-family:inherit;line-height:1.7;background:#fff;resize:vertical;color:var(--ink);}
+  .copybtn{margin-top:7px;background:var(--indigo);color:#fff;border:none;border-radius:9px;
+    padding:8px 13px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .copybtn:active{transform:scale(.97);}
+  .maillink{display:block;width:100%;text-align:center;text-decoration:none;margin-top:10px;}
 
   .toast{
     position:fixed;left:50%;bottom:96px;transform:translateX(-50%);
@@ -608,12 +624,15 @@ function goHome(){
       const prods = recProductsJoined(r).replace(/ \/ /g, "・");
       const sub = [prods, r.contactName?("→"+r.contactName):"" ].filter(Boolean).join("　");
       return `<div class="rec">
-        <div class="recmain">
-          <div class="recco">${esc(co)}</div>
-          <div class="recsub">${ts}${sub?("　"+esc(sub)):""}</div>
+        <div class="rec-top">
+          <div class="recmain">
+            <div class="recco">${esc(co)}</div>
+            <div class="recsub">${ts}${sub?("　"+esc(sub)):""}</div>
+          </div>
+          <span class="badge ${r.result||'途中終了'}">${r.result||'途中終了'}</span>
+          <button class="del" title="削除" onclick="delRecord('${r.id}')">×</button>
         </div>
-        <span class="badge ${r.result||'途中終了'}">${r.result||'途中終了'}</span>
-        <button class="del" title="削除" onclick="delRecord('${r.id}')">×</button>
+        <button class="mailbtn" onclick="openMailModal('${r.id}')">✉️ メールを作成（宛先・件名・本文を自動入力）</button>
       </div>`;
     }).join('');
   }
@@ -685,6 +704,70 @@ function exportCSV(){
   a.download="玄愛堂_架電記録_"+new Date().toISOString().slice(0,10)+".csv";
   a.click();
   toast("CSVを書き出しました");
+}
+
+/* ===================== メール作成（テンプレ自動入力） ===================== */
+function emailFor(r){
+  const products = PRODUCT_BINDS.map(b=>r[b]).concat([r.productName])
+    .map(x=>(x||'').trim()).filter(Boolean);
+  const prodLines = products.length ? products.map(p=>'・'+p).join('\n') : '・（商品名）';
+  const co = (r.company||'').trim();
+  const nm = (r.contactName||'').trim();
+  const nameLine = nm ? (/[様御中]$/.test(nm) ? nm : nm+' 様') : 'ご担当者様';
+  const to = (r.contactEmail||'').trim();
+  const subject = 'お見積書問い合わせの件';
+  const body =
+`${co ? co+'\n' : ''}${nameLine}
+
+お世話になっております。
+株式会社玄愛堂の山本（やまもと）と申します。
+先ほどお電話にてご連絡させていただきました件で、メールいたしました。
+
+弊社は愛知県で小売業を営んでおり、現在はECショップを運営しております。
+このたび、御社の下記商品のお取り扱いを希望しており、お見積書をいただきたくご連絡いたしました。
+
+【お見積りを希望する商品】
+${prodLines}
+
+お手数をおかけいたしますが、卸価格・掛け率を含めたお見積書を、本メールにご返信いただけますと幸いです。
+何卒よろしくお願い申し上げます。
+
+----------------------------------------
+株式会社玄愛堂　山本（やまもと）
+Mail: ${SELF.email}
+----------------------------------------`;
+  return {to, subject, body};
+}
+function openMailModal(id){
+  const r = loadRecords().find(x=>x.id===id);
+  if(!r){ toast("記録が見つかりません"); return; }
+  const m = emailFor(r);
+  const q = encodeURIComponent;
+  const mailto = `mailto:${m.to}?subject=${q(m.subject)}&body=${q(m.body)}`;
+  const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${q(m.to)}&su=${q(m.subject)}&body=${q(m.body)}`;
+  const back = document.createElement('div'); back.className='modal-back';
+  back.innerHTML = `<div class="modal mailmodal">
+    <h3>✉️ メール送信の準備</h3>
+    <p>ボタンで入力済みのメールをそのまま開けます。開かないときは各項目をコピーして貼り付けてください。</p>
+    <div class="mailfield"><div class="mlabel">宛先（アドレス）</div>
+      <div class="mval">${esc(m.to) || '<span style="color:var(--ink-soft)">（メールアドレス未入力）</span>'}</div>
+      <button class="copybtn" data-c="to">宛先をコピー</button></div>
+    <div class="mailfield"><div class="mlabel">件名</div>
+      <div class="mval">${esc(m.subject)}</div>
+      <button class="copybtn" data-c="subject">件名をコピー</button></div>
+    <div class="mailfield"><div class="mlabel">本文（自動入力）</div>
+      <textarea class="mbody" readonly>${esc(m.body)}</textarea>
+      <button class="copybtn" data-c="body">本文をコピー</button></div>
+    <a class="btn btn-primary maillink" href="${mailto}">✉️ メールソフトで開く（自動入力）</a>
+    <a class="btn btn-ghost maillink" href="${gmail}" target="_blank" rel="noopener">Gmailで開く</a>
+    <button class="rbtn" style="width:100%;margin-top:10px" data-close="1">閉じる</button>
+  </div>`;
+  back.addEventListener('click', e=>{ if(e.target===back) back.remove(); });
+  back.querySelector('[data-close]').onclick = ()=> back.remove();
+  back.querySelectorAll('.copybtn').forEach(btn=>{
+    btn.onclick = ()=>{ const k=btn.dataset.c; copyText(k==='to'?m.to:k==='subject'?m.subject:m.body); };
+  });
+  document.body.appendChild(back);
 }
 
 /* ===================== 架電スタート（進め方を選ぶ） ===================== */
