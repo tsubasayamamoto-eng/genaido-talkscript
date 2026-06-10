@@ -1420,9 +1420,9 @@ function fRecord(){
   return [
     fField({label:'① 相手のお名前（漢字も確認）',bind:'contactName',ph:'例）佐藤 様'}),
     fField({label:'② 送り先メールアドレス（ここに送ります・復唱して確認）',bind:'contactEmail',inputmode:'email',ph:'例）sato@example.co.jp',hint:'復唱して「お間違いないですか？」と確認しましょう。'}),
-    fField({label:'③ 部署・役職',bind:'contactDept',ph:'例）営業部 課長'}),
+    fField({label:'③ 部署・役職（任意・確認できたら記載）',bind:'contactDept',ph:'例）営業部 課長'}),
     fField({label:'④ 送り方',bind:'sendRoute',ph:'例）メール／問い合わせフォーム'}),
-    fField({label:'⑤ 問い合わせフォームの場合：フォームURL・宛先メモ',bind:'formUrl',ph:'例）https://〜/contact ／ 営業部 佐藤様宛'}),
+    fField({label:'⑤ 問い合わせフォームの場合：フォームURL・宛先メモ（任意）',bind:'formUrl',ph:'例）https://〜/contact ／ 営業部 佐藤様宛'}),
     fField({label:'⑥ お電話番号（任意）',bind:'contactPhone',inputmode:'tel',ph:'例）03-xxxx-xxxx'}),
     fField({label:'⑦ こちらの送付予定（いつ送るか）',bind:'sendDate',ph:'例）本日中／明日の午前 など',hint:'「本日中にお送りします」など、こちらから伝えましょう。'})
   ].join('');
