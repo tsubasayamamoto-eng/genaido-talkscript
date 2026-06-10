@@ -327,6 +327,13 @@
   .mini-flag.done{background:var(--green-bg);color:var(--green);}
   .mini-flag.todo{background:var(--coral-bg);color:var(--coral);}
 
+  /* 記録の編集 */
+  .editmodal{max-height:90vh;overflow-y:auto;}
+  .edit-sec-t{font-size:12.5px;font-weight:700;color:var(--indigo);margin:16px 0 4px;
+    border-bottom:1.5px solid var(--line);padding-bottom:5px;}
+  .rbtn.sel{border-color:var(--indigo);background:var(--say-bg);color:var(--indigo);
+    box-shadow:inset 0 0 0 1.5px var(--indigo);}
+
   /* Result picker (abort / finish) */
   .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0;}
   .result-grid.solo{grid-template-columns:1fr;}
@@ -939,11 +946,58 @@ function openDetailModal(id){
       ${(!r.contactName&&!r.contactEmail&&!r.contactDept&&!r.contactPhone&&!r.sendRoute&&!r.formUrl&&!r.sendDate)?'<div class="dt-row"><div class="dt-v" style="color:var(--ink-soft)">（未入力）</div></div>':''}</div>
     ${(r.note&&r.note.trim())?`<div class="dt-sec"><div class="dt-sec-t">📝 メモ</div><div class="dt-note">${esc(r.note)}</div></div>`:''}
     <button class="btn btn-primary maillink" data-mail="1">✉️ メールを作成</button>
+    <button class="btn btn-ghost maillink" data-edit="1">✏️ この記録を編集</button>
     <button class="rbtn" style="width:100%;margin-top:10px" data-close="1">閉じる</button>
   </div>`;
   back.addEventListener('click', e=>{ if(e.target===back) back.remove(); });
   back.querySelector('[data-close]').onclick = ()=> back.remove();
   back.querySelector('[data-mail]').onclick = ()=>{ back.remove(); openMailModal(id); };
+  back.querySelector('[data-edit]').onclick = ()=>{ back.remove(); openEditModal(id); };
+  document.body.appendChild(back);
+}
+
+/* ===================== 記録の編集（後から追記・修正） ===================== */
+function openEditModal(id){
+  const r = loadRecords().find(x=>x.id===id);
+  if(!r){ toast('記録が見つかりません'); return; }
+  cur = JSON.parse(JSON.stringify(r));
+  const base = newCall();
+  Object.keys(base).forEach(k=>{ if(cur[k]===undefined) cur[k]=base[k]; });
+  cur.id = r.id;
+  const RESULTS = ['成立','卸紹介','見送り','担当不在','受付拒否','途中終了'];
+  const back = document.createElement('div'); back.className='modal-back';
+  back.innerHTML = `<div class="modal editmodal">
+    <h3>✏️ 記録を編集</h3>
+    <p>あとから電話番号などを追記・修正できます。変更したら「保存」を押してください。</p>
+    ${fField({label:'会社名',bind:'company',ph:'例）〇〇商事 株式会社'})}
+    <div class="edit-sec-t">📦 商品</div>
+    ${fMemo()}
+    <div class="edit-sec-t">👤 相手・送り先</div>
+    ${fRecord()}
+    <div class="edit-sec-t">🏢 卸・商社（紹介）</div>
+    ${fRepeat({binds:DIST_BINDS, labelEach:i=>'卸・商社名'+maru(i), ph:i=>'例）〇〇卸 株式会社', addLabel:'＋ 卸・商社を追加'})}
+    <div class="edit-sec-t">📝 メモ</div>
+    ${fField({label:'',bind:'note',area:true,ph:'気づいたこと・申し送りなど'})}
+    <div class="edit-sec-t">📌 結果</div>
+    <div class="result-grid" id="editResult">
+      ${RESULTS.map(rs=>`<button type="button" class="rbtn ${cur.result===rs?'sel':''}" data-r="${rs}">${rs}</button>`).join('')}
+    </div>
+    <button class="btn btn-primary maillink" data-save="1" style="margin-top:16px">💾 保存する</button>
+    <button class="rbtn" style="width:100%;margin-top:10px" data-cancel="1">キャンセル</button>
+  </div>`;
+  back.querySelectorAll('#editResult .rbtn').forEach(b=>{
+    b.onclick=()=>{ cur.result=b.dataset.r;
+      back.querySelectorAll('#editResult .rbtn').forEach(x=>x.classList.remove('sel'));
+      b.classList.add('sel'); };
+  });
+  back.querySelector('[data-save]').onclick=()=>{
+    syncInputs();
+    const list=loadRecords(); const i=list.findIndex(x=>x.id===id);
+    if(i>=0){ list[i]=cur; saveRecords(list); }
+    cur=null; back.remove(); toast('記録を更新しました'); goHome();
+  };
+  back.querySelector('[data-cancel]').onclick=()=>{ cur=null; back.remove(); };
+  back.addEventListener('click', e=>{ if(e.target===back){ cur=null; back.remove(); } });
   document.body.appendChild(back);
 }
 
