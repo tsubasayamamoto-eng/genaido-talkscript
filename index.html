@@ -1545,19 +1545,17 @@ const NODES = {
     ],
     naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
   },
-  s1_none:{ no:1, isSub:true, title:'受付突破', h:'「担当はいない」と言われたら', when:'まず取り次ぎ→ダメなら名前を伺います',
+  s1_none:{ no:1, isSub:true, title:'受付突破', h:'「担当はいない」と言われたら', when:'かけ直すため、お名前を伺います',
     body:()=>
-      fSay({q:'それであれば、<br>こちらの件でお話のわかる方におつなぎいただけますか？'})
-      + fNote({bold:true, html:'↓ それでも「取り次げない」と言われたら、かけ直すためにお名前を伺います'})
-      + fSay({q:'さようでございますか。<br>それでは改めてお電話させていただきますので、<br>ご担当者様のお名前を教えていただくことはできますでしょうか？'}),
+      fSay({q:'さようでございますか。<br>それでは改めてお電話させていただきますので、<br>ご担当者様のお名前を教えていただくことはできますでしょうか？'}),
     naviExtra:()=>
       fField({label:'ご担当者名（聞けたら記入）', bind:'contactName', ph:'例）営業部 佐藤様'})
       + fField({label:'かけ直しメモ（戻り時間・部署など／任意）', bind:'note', area:true, ph:'例）午後なら在席／営業部'}),
     branchLead:'◇ どうなりましたか？',
     branches:[
-      {style:'go', bt:'✅ つながった', desc:'担当者と話すへ', goto:'s2'},
+      {style:'go', bt:'✅ 担当者につないでもらえた', desc:'担当者と話すへ', goto:'s2'},
       {style:'', bt:'📛 担当者名を教えてもらえた', desc:'「再架電」で記録（後日かけ直す）', result:'再架電'},
-      {style:'warn', bt:'✖ 取り次ぎも名前も断られた', desc:'「受付拒否」で記録して終了', result:'受付拒否'}
+      {style:'warn', bt:'✖ 名前も教えてもらえない', desc:'「受付拒否」で記録して終了', result:'受付拒否'}
     ],
     naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
   },
