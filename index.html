@@ -77,7 +77,7 @@
   }
   .say::before{content:"🗣";position:absolute;left:15px;top:14px;font-size:20px;}
   .say .q{font-weight:700;color:var(--indigo);}
-  .say .small{font-size:13.5px;color:var(--ink-soft);display:block;margin-top:6px;font-weight:400;}
+  .say .small{font-size:15px;color:var(--say-ink);display:block;margin-top:8px;font-weight:500;line-height:1.95;}
 
   .lead{font-size:13px;color:var(--ink-soft);font-weight:700;margin:18px 0 8px;}
 
@@ -1366,7 +1366,7 @@ const NODES = {
       `<div class="step-art">${CLIENT_SVG}</div>`
       + fSay({
         q:`お忙しいところ恐れ入ります。${selfShort(SELF.company)}の${selfShort(SELF.caller)}と申します。`,
-        small:'弊社は愛知県で小売業を営んでおり、現在はECショップを運営しており、将来的には実店舗も見据えております。商品ラインナップの幅を広げようと検討していたところ、御社のHPで取り扱い商品を拝見し、ぜひ<b>新たな仕入れ候補</b>として検討させていただきたくご連絡いたしました。'
+        small:'弊社は愛知県で小売業を営んでおり、<br>現在はECショップを運営しており、将来的には実店舗も見据えております。<br>商品ラインナップの幅を広げようと検討していたところ、<br>御社のHPで取り扱い商品を拝見し、<br>ぜひ<b>新たな仕入れ候補</b>として検討させていただきたく、ご連絡いたしました。'
       })
       + fRebuts({lead:'◇ 断られたら（相手がこう言ったら、🗣のセリフでそのまま切り返します）', items:[
         {b:'「結構です」', note:'そっけなく断られたとき。すぐ引かず、ひと言だけ返します。', text:'今すぐ必要ないとは思いますが、同じ商材を扱うお客様も弊社経由で販売数が伸びた実績がありまして〜'},
