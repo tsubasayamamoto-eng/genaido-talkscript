@@ -1302,7 +1302,7 @@ function fGoal(){
   return `<p style="font-size:13px;color:var(--ink-soft);">ゴール＝<b>商品名を伝える → 送り先（メール または 問い合わせフォーム）を確認 → こちらから資料・お見積りのご相談を送る</b>。<br>先方に送ってもらう手間はかけません。断られても、すぐ切らずに切り返してから次へ進みます。</p>`;
 }
 function fSelfinfo(){
-  return `<div class="selfinfo">🗣 こうお伝えします：<br>「のちほど弊社の<b>${SELF.repName}</b>より、資料とお見積りのご相談のメールをお送りさせていただきます。」
+  return `<div class="selfinfo">🗣 こうお伝えします：<br>「のちほど弊社の<b>${SELF.repName}</b>より、<br>資料とお見積りのご相談のメールをお送りさせていただきます。」
     <div style="margin-top:8px;font-size:13px;">差出人メール（架電者の確認用）：<b>${SELF.email}</b>
     <button class="copy" onclick="copyText('${SELF.email}')">自社メールをコピー</button></div></div>`;
 }
@@ -1337,7 +1337,7 @@ function restProductsText(){
 function fProductSay(){
   const p1 = (cur.product1||'').trim() ? esc(cur.product1.trim()) : '〔商品名①〕';
   return fSay({
-    q:`実は、御社の「<span class="prodref">${p1}</span>」という商品を、ぜひ弊社で取り扱わせていただきたく思っておりまして、ご相談させていただきたく、もしよろしければお見積書をいただくことは出来ますでしょうか？`,
+    q:`実は、御社の「<span class="prodref">${p1}</span>」という商品を、<br>ぜひ弊社で取り扱わせていただきたく思っておりまして、<br>ご相談させていただきたく、もしよろしければ<br>お見積書をいただくことは出来ますでしょうか？`,
     small:`<span class="prodrest">${restProductsText()}</span>`
   });
 }
@@ -1347,7 +1347,7 @@ const NODES = {
   s1:{ no:1, title:'受付突破', h:'受付突破', when:'最初に出た受付の方へ',
     body:()=>
       `<div class="step-art">${PHONE_SVG}</div>`
-      + fSay({q:`お世話になっております。${SELF.company}の${selfShort(SELF.caller)}と申します。御社HPの商品ラインナップを拝見させていただき、商品のお見積書をいただきたくご連絡させていただきました。ご担当者の方はお見えでしょうか？`})
+      + fSay({q:`お世話になっております。<br>${SELF.company}の${selfShort(SELF.caller)}と申します。<br>御社HPの商品ラインナップを拝見させていただき、<br>商品のお見積書をいただきたくご連絡させていただきました。<br>ご担当者の方はお見えでしょうか？`})
       + fHelper({label:'「ご用件は？」と聞かれたら', html:'御社の商品の<b>お見積りの件</b>、とお伝えください。'})
       + fHelper({label:'「具体的には？」と聞かれたら', html:'弊社は愛知県で小売業を営んでおり、現在は自社ECショップを中心に、将来的には実店舗も見据えて取扱い商品を増やしております。ぜひ御社の商品を扱わせていただきたくご連絡しました。ご担当者におつなぎいただけますか？'})
       + fHelper({label:'「フォームから送って」と言われたら', html:'承知しました。それでは、お問い合わせフォームからご案内をお送りしますので、ぜひご一読ください。差し支えなければ、ご担当者様にもお取り次ぎいただけますと幸いです。'}),
@@ -1360,7 +1360,7 @@ const NODES = {
     naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
   },
   s1_none:{ no:1, isSub:true, title:'受付突破', h:'「担当はいない」と言われたら', when:'まずこのセリフで切り返します',
-    body:()=> fSay({q:'それであれば、こちらの件でお話のわかる方におつなぎいただけますか？'}),
+    body:()=> fSay({q:'それであれば、<br>こちらの件でお話のわかる方におつなぎいただけますか？'}),
     branchLead:'◇ つながりましたか？',
     branches:[
       {style:'go', bt:'✅ つながった', desc:'担当者と話すへ', goto:'s2'},
@@ -1369,7 +1369,7 @@ const NODES = {
     naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
   },
   s1_absent:{ no:1, isSub:true, title:'受付突破', h:'担当者が不在のとき', when:'戻り時間を聞いてメモします',
-    body:()=> fSay({q:'承知しました。普段は午前10時／午後3時、どちらが社内にお見えでしょうか？'}),
+    body:()=> fSay({q:'承知しました。<br>普段は午前10時／午後3時、<br>どちらが社内にお見えでしょうか？'}),
     naviExtra:()=> fField({label:'戻り時間・再架電メモ', bind:'note', area:true, ph:'例）明日 午後3時ごろ戻り／〇〇様あて'}),
     naviActions:[
       {label:'「担当不在」で記録して終了', cls:'btn-primary', finish:'担当不在'},
@@ -1380,7 +1380,7 @@ const NODES = {
     body:()=>
       `<div class="step-art">${CLIENT_SVG}</div>`
       + fSay({
-        q:`お忙しいところ恐れ入ります。${selfShort(SELF.company)}の${selfShort(SELF.caller)}と申します。`,
+        q:`お忙しいところ恐れ入ります。<br>${selfShort(SELF.company)}の${selfShort(SELF.caller)}と申します。`,
         small:'弊社は愛知県で小売業を営んでおり、<br>現在はECショップを運営しており、将来的には実店舗も見据えております。<br>商品ラインナップの幅を広げようと検討していたところ、<br>御社のHPで取り扱い商品を拝見し、<br>ぜひ<b>新たな仕入れ候補</b>として検討させていただきたく、ご連絡いたしました。'
       })
       + fRebuts({lead:'◇ 断られたら（相手がこう言ったら、🗣のセリフでそのまま切り返します）', items:[
@@ -1410,7 +1410,7 @@ const NODES = {
   },
   s3_dist:{ no:3, isSub:true, title:'商品を伝える', h:'「直接の取引はしていない」と言われたら', when:'仕入れ先の卸・商社を教えてもらいます',
     body:()=>
-      fSay({q:'さようでございますか。それでしたら、御社の商品をお取り扱いしている<b>卸会社や商社</b>などを、もしよろしければお教えいただくことは出来ますでしょうか？'})
+      fSay({q:'さようでございますか。<br>それでしたら、御社の商品をお取り扱いしている<b>卸会社や商社</b>などを、<br>もしよろしければお教えいただくことは出来ますでしょうか？'})
       + fRepeat({
           binds:DIST_BINDS,
           labelEach:i=>'卸・商社名'+maru(i)+'（メモ）',
@@ -1425,7 +1425,7 @@ const NODES = {
     naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
   },
   s3_alt:{ no:3, isSub:true, title:'商品を伝える', h:'その商品が無いとき', when:'近い商品でも構いません',
-    body:()=> fSay({q:'でしたら、近い商品でも構いません。御社で今お出しできる類似品はございますか？'}),
+    body:()=> fSay({q:'でしたら、近い商品でも構いません。<br>御社で今お出しできる類似品はございますか？'}),
     branchLead:'◇ どうなりましたか？',
     branches:[
       {style:'go', bt:'✅ 類似品を出してもらえそう', desc:'送り先の確認へ', goto:'s4'},
@@ -1436,7 +1436,7 @@ const NODES = {
   s4:{ no:4, title:'送り先を確認', h:'送り先を確認（こちらから送ります）', when:'先方の手間を省き、こちらからお送りします',
     body:()=>
       `<div class="step-art">${MAIL_SVG}</div>`
-      + fSay({q:'ありがとうございます。お忙しいところお手間を取らせてしまいますので、<b>こちらから資料とお見積りのご相談をメールでお送りさせていただきます</b>。差し支えなければ、ご担当者様のメールアドレスを教えていただけますでしょうか？'})
+      + fSay({q:'ありがとうございます。<br>お忙しいところお手間を取らせてしまいますので、<br><b>こちらから資料とお見積りのご相談をメールでお送りさせていただきます</b>。<br>差し支えなければ、ご担当者様のメールアドレスを教えていただけますでしょうか？'})
       + fHelper({label:'「どんな内容を送るの？」と聞かれたら', html:'弊社の簡単なご紹介と、お取り扱いを希望する商品・条件のご相談です。ご返信を急かすものではありません。'})
       + fHelper({label:'「アドレスはちょっと…」と渋られたら', html:'承知しました。それでしたら、御社HPのお問い合わせフォームからお送りしても差し支えないでしょうか？'}),
     branchLead:'◇ 相手の返事は？',
@@ -1447,7 +1447,7 @@ const NODES = {
     naviActions:[{label:'終了', cls:'btn-ghost', abort:true}]
   },
   s4_form:{ no:4, isSub:true, title:'送り先を確認', h:'問い合わせフォームから送る場合', when:'フォームの宛先を確認します',
-    body:()=> fSay({q:'承知しました。それでは御社HPのお問い合わせフォームからお送りいたします。念のため、フォームに記載する宛先のご部署や、どなた様宛とすればよいか教えていただけますか？'}),
+    body:()=> fSay({q:'承知しました。<br>それでは御社HPのお問い合わせフォームからお送りいたします。<br>念のため、フォームに記載する宛先のご部署や、<br>どなた様宛とすればよいか教えていただけますか？'}),
     branchLead:'◇ 宛先はわかりましたか？',
     branches:[
       {style:'go', bt:'✅ フォームの宛先がわかった', desc:'送付準備へ（フォームから送ります）', goto:'s5'}
@@ -1464,7 +1464,7 @@ const NODES = {
   s6:{ no:6, title:'お礼 → 終話', h:'お礼 → 終話', when:'最後まで丁寧に',
     body:()=>
       `<div class="step-art">${OPERATOR_SVG}</div>`
-      + fSay({green:true, q:'本日は貴重なお時間をいただき、ありがとうございました。引き続きよろしくお願いいたします。失礼いたします。'})
+      + fSay({green:true, q:'本日は貴重なお時間をいただき、ありがとうございました。<br>引き続きよろしくお願いいたします。<br>失礼いたします。'})
       + `<div class="panel"><h3 style="color:var(--indigo)">この架電のメモ（任意）</h3>${fField({label:'',bind:'note',area:true,ph:'気づいたこと・次回の申し送りなど'})}</div>`
       + fNote({html:'送り先（メール／問い合わせフォーム）が確認できていれば「成立」です。<br>このあと忘れずに、こちらから資料・お見積りのご相談をお送りします。'})
       + fResultGrid(),
