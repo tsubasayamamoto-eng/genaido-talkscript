@@ -146,6 +146,8 @@
   .dup-warn{background:var(--red-bg);border:1.5px solid var(--red);color:var(--red);
     border-radius:10px;padding:10px 12px;font-size:13px;font-weight:700;margin:2px 0 12px;line-height:1.65;}
   .dup-warn b{color:var(--red);}
+  .dup-warn.caution{background:var(--branch-bg);border-color:#C9B79A;color:var(--branch-ink);}
+  .dup-warn.caution b{color:#6f4f12;}
 
   /* 飽きさせない演出：入場アニメ＋ホバー */
   @keyframes fadeUp{from{opacity:0;transform:translateY(9px);}to{opacity:1;transform:none;}}
@@ -938,11 +940,40 @@ function normalizeCo(s){
     .replace(/[\s　]/g,'')
     .replace(/(株式会社|有限会社|合同会社|合資会社|合名会社|（株）|\(株\)|（有）|\(有\)|㈱|㈲)/g,'');
 }
+function levenshtein(a,b){
+  const m=a.length, n=b.length;
+  if(!m) return n; if(!n) return m;
+  const dp=Array.from({length:m+1},(_,i)=>i);
+  for(let j=1;j<=n;j++){
+    let prev=dp[0]; dp[0]=j;
+    for(let i=1;i<=m;i++){
+      const tmp=dp[i];
+      dp[i]=Math.min(dp[i]+1, dp[i-1]+1, prev+(a[i-1]===b[j-1]?0:1));
+      prev=tmp;
+    }
+  }
+  return dp[m];
+}
+function similarity(a,b){
+  if(!a||!b) return null;
+  if(a===b) return 'exact';
+  // 片方がもう片方を含む（株式会社の有無・後ろの語の付け足し等）
+  if((a.length>=3 && b.indexOf(a)>=0) || (b.length>=3 && a.indexOf(b)>=0)) return 'similar';
+  // 軽微な打ち間違い（編集距離）
+  const d=levenshtein(a,b), maxLen=Math.max(a.length,b.length);
+  if(maxLen>=3 && d<=Math.max(1, Math.floor(maxLen*0.3))) return 'similar';
+  return null;
+}
 function findDupCompany(name){
   const n = normalizeCo(name);
   if(n.length < 2) return null;
-  const matches = loadRecords().filter(r=> normalizeCo(r.company)===n);
-  return matches.length ? matches : null;
+  const exact=[], similar=[];
+  loadRecords().forEach(r=>{
+    const s = similarity(n, normalizeCo(r.company));
+    if(s==='exact') exact.push(r);
+    else if(s==='similar') similar.push(r);
+  });
+  return (exact.length || similar.length) ? {exact, similar} : null;
 }
 function dupSummary(matches){
   const m = matches[0];
@@ -957,10 +988,17 @@ function fCompanyField(){
 function checkDupCompany(val){
   const warn = document.getElementById('dupWarn');
   if(!warn) return;
-  const matches = findDupCompany(val);
-  if(!matches){ warn.classList.add('hidden'); warn.innerHTML=''; return; }
-  warn.innerHTML = `⚠️ この会社は<b>過去に架電済み</b>です（${dupSummary(matches)}）。架電が重複していないかご確認ください。`;
-  warn.classList.remove('hidden');
+  const res = findDupCompany(val);
+  if(!res){ warn.className='dup-warn hidden'; warn.innerHTML=''; return; }
+  if(res.exact.length){
+    warn.className='dup-warn';
+    warn.innerHTML = `⚠️ この会社は<b>過去に架電済み</b>です（${dupSummary(res.exact)}）。架電が重複していないかご確認ください。`;
+  }else{
+    warn.className='dup-warn caution';
+    const names = res.similar.slice(0,3).map(r=>esc(r.company||'（無名）')).join('、');
+    const more = res.similar.length>3 ? ` ほか${res.similar.length-3}件` : '';
+    warn.innerHTML = `🔎 <b>似た会社名</b>の記録があります：${names}${more}<br>同じ会社（「株式会社」の付け忘れ等）でないか、ご確認ください。`;
+  }
 }
 
 function recProductsJoined(r){
@@ -1471,7 +1509,16 @@ function prepRender(){
     {label:"📞 架電スタート", cls:"btn-primary", onClick:()=>{
       syncInputs();
       const dup = findDupCompany(cur.company);
-      if(dup && !confirm(`「${cur.company}」は過去に架電済みの可能性があります。\n（${dupSummary(dup)}）\n\n架電が重複するかもしれません。このまま進めますか？`)) return;
+      if(dup){
+        let msg;
+        if(dup.exact.length){
+          msg = `「${cur.company}」は過去に架電済みの可能性があります。\n（${dupSummary(dup.exact)}）\n\n架電が重複するかもしれません。このまま進めますか？`;
+        }else{
+          const names = dup.similar.slice(0,3).map(r=>r.company).join('、');
+          msg = `「${cur.company}」と似た会社名の記録があります：\n${names}\n\n同じ会社（「株式会社」の付け忘れなど）ではありませんか？\nこのまま進めますか？`;
+        }
+        if(!confirm(msg)) return;
+      }
       go('s1');
     }}
   ]);
