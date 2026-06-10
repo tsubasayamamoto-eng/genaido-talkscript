@@ -715,7 +715,8 @@ function newCall(){
     company:"", productSize:"", productRate:"",
     contactName:"", contactEmail:"", contactDept:"", contactPhone:"",
     sendRoute:"", formUrl:"", sendDate:"",
-    result:"", note:"", mailSent:false, mailSentAt:null
+    result:"", note:"", mailSent:false, mailSentAt:null,
+    referralMaker:"", referralContact:""
   };
   PRODUCT_BINDS.forEach(b=> c[b]="");
   DIST_BINDS.forEach(b=> c[b]="");
@@ -888,6 +889,7 @@ function recCard(r){
   const prods = recProductsJoined(r).replace(/ \/ /g, "・");
   const sub = [prods, r.contactName?("→"+r.contactName):"" ].filter(Boolean).join("　");
   const chips = [];
+  if((r.referralMaker||'').trim()) chips.push('<span class="chip" style="background:var(--say-bg);color:var(--indigo)">🔗 紹介から架電</span>');
   if(r.mailSent) chips.push('<span class="chip chip-sent">✅ メール送信済み</span>');
   if(recDistJoined(r)) chips.push('<span class="chip chip-dist">🏢 商社紹介あり</span>');
   if((r.contactEmail||'').trim()) chips.push('<span class="chip chip-mail">✉️ 宛先あり</span>');
@@ -924,6 +926,7 @@ function openDetailModal(id){
     <div class="dt-head"><h3>${esc(r.company||'（会社名なし）')}</h3>
       <span class="badge ${r.result||'途中終了'}">${r.result||'途中終了'}</span></div>
     <p class="dt-time">🕒 ${ts}</p>
+    ${(r.referralMaker||'').trim()?`<div class="dt-sent" style="background:var(--say-bg);color:var(--indigo);border-color:#cdd9ec">🔗 ${esc(r.referralMaker)}${(r.referralContact||'').trim()?'（'+esc(r.referralContact)+'様）':''} のご紹介から架電</div>`:''}
     ${r.mailSent?`<div class="dt-sent">✅ メール送信済み${r.mailSentAt?'（'+(()=>{const d=new Date(r.mailSentAt);return (d.getMonth()+1)+'/'+d.getDate()+' '+pad2(d.getHours())+':'+pad2(d.getMinutes());})()+'）':''}</div>`:''}
     ${dist?`<div class="dt-flag">🏢 卸・商社を教えてもらいました<br><b>${esc(dist)}</b></div>`:''}
     <div class="dt-sec"><div class="dt-sec-t">📦 お伝えした商品</div>${prodHtml}
@@ -946,13 +949,14 @@ function openDetailModal(id){
 
 /* ===================== 卸・商社リスト（紹介された仕入れ先） ===================== */
 function collectDistributors(){
-  const map = {}; // 正規化名 -> {name, sources:[{company,date}]}
+  const map = {}; // 正規化名 -> {name, sources:[{company,date,contactName,products}]}
   loadRecords().forEach(r=>{
+    const products = PRODUCT_BINDS.map(b=>r[b]).concat([r.productName]).map(x=>(x||'').trim()).filter(Boolean);
     DIST_BINDS.map(b=>r[b]).concat([r.distributor]).forEach(d=>{
       const v=(d||'').trim(); if(!v) return;
       const key=normalizeCo(v);
       if(!map[key]) map[key]={name:v, sources:[]};
-      map[key].sources.push({company:r.company||'（無名）', date:r.finishedAt||r.createdAt});
+      map[key].sources.push({company:r.company||'（無名）', date:r.finishedAt||r.createdAt, contactName:(r.contactName||'').trim(), products});
     });
   });
   return Object.values(map);
@@ -993,7 +997,11 @@ function openDistList(){
   back.addEventListener('click', e=>{ if(e.target===back) back.remove(); });
   back.querySelector('[data-close]').onclick=()=> back.remove();
   back.querySelectorAll('.dist-call').forEach((btn,i)=>{
-    btn.onclick=()=>{ back.remove(); startCall(dists[i].name); };
+    btn.onclick=()=>{
+      back.remove();
+      const d=dists[i], s=d.sources[0];
+      startCall({ company:d.name, referral:{maker:s.company, contact:s.contactName}, products:s.products });
+    };
   });
   document.body.appendChild(back);
 }
@@ -1224,9 +1232,16 @@ function openMailModal(id){
 
 /* ===================== 架電スタート（進め方を選ぶ） ===================== */
 let mode = "navi"; // 'navi' or 'scroll'
-function startCall(prefillCompany){
+function startCall(prefill){
   cur = newCall();
-  if(prefillCompany){ cur.company = prefillCompany; }
+  if(prefill){
+    if(typeof prefill === 'string'){ cur.company = prefill; }
+    else {
+      cur.company = prefill.company || '';
+      if(Array.isArray(prefill.products)){ prefill.products.forEach((p,i)=>{ if(i<PRODUCT_BINDS.length) cur[PRODUCT_BINDS[i]] = p; }); }
+      if(prefill.referral){ cur.referralMaker = prefill.referral.maker||''; cur.referralContact = prefill.referral.contact||''; }
+    }
+  }
   stepStack = [];
   currentStepId = null;
   setTop("進め方を選ぶ", 0);
@@ -1437,15 +1452,31 @@ function fProductSay(){
   });
 }
 
+/* 紹介架電のときの「○○メーカーの△△様」フレーズ（通常架電は null） */
+function refFrom(){
+  const ref=(cur.referralMaker||'').trim();
+  if(!ref) return null;
+  const c=(cur.referralContact||'').trim();
+  return c ? `${esc(ref)}の${esc(c)}様` : `${esc(ref)}様`;
+}
+
 /* --- ノード定義（中身は body() に集約。両モードが同じ body() を呼ぶ） --- */
 const NODES = {
   s1:{ no:1, title:'受付突破', h:'受付突破', when:'最初に出た受付の方へ',
-    body:()=>
-      `<div class="step-art">${PHONE_SVG}</div>`
-      + fSay({q:`お世話になっております。<br>${SELF.company}の${selfShort(SELF.caller)}と申します。<br>御社HPの商品ラインナップを拝見させていただき、<br>商品のお見積書をいただきたくご連絡させていただきました。<br>ご担当者の方はお見えでしょうか？`})
-      + fHelper({label:'「ご用件は？」と聞かれたら', html:'御社の商品の<b>お見積りの件</b>、とお伝えください。'})
-      + fHelper({label:'「具体的には？」と聞かれたら', html:'弊社は愛知県で小売業を営んでおり、現在は自社ECショップを中心に、将来的には実店舗も見据えて取扱い商品を増やしております。ぜひ御社の商品を扱わせていただきたくご連絡しました。ご担当者におつなぎいただけますか？'})
-      + fHelper({label:'「フォームから送って」と言われたら', html:'承知しました。それでは、お問い合わせフォームからご案内をお送りしますので、ぜひご一読ください。差し支えなければ、ご担当者様にもお取り次ぎいただけますと幸いです。'}),
+    body:()=>{
+      const from = refFrom();
+      const q = from
+        ? `お世話になっております。<br>${SELF.company}の${selfShort(SELF.caller)}と申します。<br>${from}より商品をご紹介いただき、<br>ご連絡させていただきました。<br>ご担当者の方はお見えでしょうか？`
+        : `お世話になっております。<br>${SELF.company}の${selfShort(SELF.caller)}と申します。<br>御社HPの商品ラインナップを拝見させていただき、<br>商品のお見積書をいただきたくご連絡させていただきました。<br>ご担当者の方はお見えでしょうか？`;
+      const yoken = from
+        ? `${esc((cur.referralMaker||'').trim())}様からのご紹介で、<b>商品のお取り扱い・お見積りのご相談</b>とお伝えください。`
+        : '御社の商品の<b>お見積りの件</b>、とお伝えください。';
+      return `<div class="step-art">${PHONE_SVG}</div>`
+        + fSay({q})
+        + fHelper({label:'「ご用件は？」と聞かれたら', html:yoken})
+        + fHelper({label:'「具体的には？」と聞かれたら', html:'弊社は愛知県で小売業を営んでおり、現在は自社ECショップを中心に、将来的には実店舗も見据えて取扱い商品を増やしております。ぜひ御社の商品を扱わせていただきたくご連絡しました。ご担当者におつなぎいただけますか？'})
+        + fHelper({label:'「フォームから送って」と言われたら', html:'承知しました。それでは、お問い合わせフォームからご案内をお送りしますので、ぜひご一読ください。差し支えなければ、ご担当者様にもお取り次ぎいただけますと幸いです。'});
+    },
     branchLead:'◇ 相手の返事は？',
     branches:[
       {style:'go', bt:'✅ 担当者に代わってもらえた', desc:'そのまま担当者と話すへ', goto:'s2'},
@@ -1472,17 +1503,22 @@ const NODES = {
     ]
   },
   s2:{ no:2, title:'担当者と話す', h:'担当者と話す', when:'ご本人が電話口に出たら',
-    body:()=>
-      `<div class="step-art">${CLIENT_SVG}</div>`
-      + fSay({
-        q:`お忙しいところ恐れ入ります。<br>${selfShort(SELF.company)}の${selfShort(SELF.caller)}と申します。`,
-        small:'弊社は愛知県で小売業を営んでおり、<br>現在はECショップを運営しており、将来的には実店舗も見据えております。<br>商品ラインナップの幅を広げようと検討していたところ、<br>御社のHPで取り扱い商品を拝見し、<br>ぜひ<b>新たな仕入れ候補</b>として検討させていただきたく、ご連絡いたしました。'
-      })
-      + fRebuts({lead:'◇ 断られたら（相手がこう言ったら、🗣のセリフでそのまま切り返します）', items:[
-        {b:'「結構です」', note:'そっけなく断られたとき。すぐ引かず、ひと言だけ返します。', text:'今すぐ必要ないとは思いますが、同じ商材を扱うお客様も弊社経由で販売数が伸びた実績がありまして〜'},
-        {b:'「資料・サイトがない」', note:'「送れる資料がない」と言われたとき。きれいな資料は不要、と伝えます。', text:'綺麗な資料でなくて大丈夫です。普段お使いの商品リストや価格表（Excel）でも構いません〜'},
-        {b:'「大量・現金じゃないと無理」', note:'取引の条件が厳しそうなとき。無理はさせない、と伝えます。', text:'無理なロットはお願いしません。小ロットのお試しから、お支払いも御社の規定に合わせます〜'}
-      ]}),
+    body:()=>{
+      const from = refFrom();
+      const small = from
+        ? `弊社は愛知県で小売業を営んでおり、<br>現在はECショップを運営しており、将来的には実店舗も見据えております。<br>商品ラインナップの幅を広げようと検討しており、<br>このたび${from}より御社をご紹介いただきました。<br>ぜひ<b>新たな仕入れ候補</b>として検討させていただきたく、ご連絡いたしました。`
+        : `弊社は愛知県で小売業を営んでおり、<br>現在はECショップを運営しており、将来的には実店舗も見据えております。<br>商品ラインナップの幅を広げようと検討していたところ、<br>御社のHPで取り扱い商品を拝見し、<br>ぜひ<b>新たな仕入れ候補</b>として検討させていただきたく、ご連絡いたしました。`;
+      return `<div class="step-art">${CLIENT_SVG}</div>`
+        + fSay({
+          q:`お忙しいところ恐れ入ります。<br>${selfShort(SELF.company)}の${selfShort(SELF.caller)}と申します。`,
+          small
+        })
+        + fRebuts({lead:'◇ 断られたら（相手がこう言ったら、🗣のセリフでそのまま切り返します）', items:[
+          {b:'「結構です」', note:'そっけなく断られたとき。すぐ引かず、ひと言だけ返します。', text:'今すぐ必要ないとは思いますが、同じ商材を扱うお客様も弊社経由で販売数が伸びた実績がありまして〜'},
+          {b:'「資料・サイトがない」', note:'「送れる資料がない」と言われたとき。きれいな資料は不要、と伝えます。', text:'綺麗な資料でなくて大丈夫です。普段お使いの商品リストや価格表（Excel）でも構いません〜'},
+          {b:'「大量・現金じゃないと無理」', note:'取引の条件が厳しそうなとき。無理はさせない、と伝えます。', text:'無理なロットはお願いしません。小ロットのお試しから、お支払いも御社の規定に合わせます〜'}
+        ]});
+    },
     naviActions:[
       {label:'次へ：狙う商品を伝える →', cls:'btn-primary', go:'s3'},
       {label:'終了', cls:'btn-ghost', abort:true}
