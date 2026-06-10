@@ -42,12 +42,19 @@
     padding:12px 16px;display:flex;align-items:center;gap:12px;
     box-shadow:0 2px 8px rgba(35,48,68,.12);
   }
-  .topbar .ttl{font-weight:700;font-size:15px;flex:1;letter-spacing:.02em;}
-  .topbar .step-ind{font-size:12px;opacity:.85;background:rgba(255,255,255,.16);
-    padding:3px 10px;border-radius:999px;white-space:nowrap;}
+  .topbar .ttl{font-weight:700;font-size:15px;flex:1;min-width:0;letter-spacing:.02em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .topbar .step-ind{flex:0 0 auto;font-size:12px;opacity:.92;background:rgba(255,255,255,.18);
+    padding:4px 10px;border-radius:999px;white-space:nowrap;}
   .iconbtn{
-    background:rgba(255,255,255,.14);border:none;color:#fff;
-    font-size:13px;font-weight:700;padding:7px 12px;border-radius:10px;cursor:pointer;
+    flex:0 0 auto;background:rgba(255,255,255,.14);border:none;color:#fff;
+    font-size:13px;font-weight:700;padding:7px 12px;border-radius:10px;cursor:pointer;white-space:nowrap;
+  }
+  @media(max-width:400px){
+    .topbar{gap:8px;padding:11px 12px;}
+    .topbar .ttl{font-size:14px;}
+    .topbar .step-ind{font-size:11px;padding:4px 8px;}
+    .iconbtn{font-size:12px;padding:7px 9px;}
   }
   .iconbtn:active{background:rgba(255,255,255,.28);}
 
@@ -75,7 +82,15 @@
     color:var(--say-ink);font-size:17px;line-height:1.85;
     border:1px solid #d4e0f1;
   }
-  .say::before{content:"🗣";position:absolute;left:15px;top:14px;font-size:20px;}
+  .say::before{content:"🗣";position:absolute;left:15px;top:14px;font-size:20px;
+    transform-origin:center;animation:sayWiggle 1.8s ease-in-out infinite;}
+  @keyframes sayWiggle{
+    0%,55%,100%{transform:scale(1) rotate(0);}
+    62%{transform:scale(1.22) rotate(-9deg);}
+    70%{transform:scale(1.22) rotate(7deg);}
+    78%{transform:scale(1.22) rotate(-5deg);}
+    86%{transform:scale(1.12) rotate(0);}
+  }
   .say .q{font-weight:700;color:var(--indigo);}
   .say .small{font-size:15px;color:var(--say-ink);display:block;margin-top:8px;font-weight:500;line-height:1.95;}
 
@@ -166,7 +181,7 @@
     .rmbtn:hover{background:var(--red-bg);}
   }
   @media(prefers-reduced-motion:reduce){
-    .step-title,.step-when,.say,.step-art,.choices .choice{animation:none;}
+    .step-title,.step-when,.say,.step-art,.choices .choice,.say::before{animation:none;}
   }
 
   .panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0;}
@@ -1575,7 +1590,7 @@ function scrollNode(id){
 function renderScroll(){
   currentStepId = null;
   window.scrollTo(0,0);
-  document.getElementById('topTitle').textContent = 'トークスクリプト（全体）';
+  document.getElementById('topTitle').textContent = 'トークスクリプト';
   const ind = document.getElementById('stepInd');
   ind.classList.remove('hidden'); ind.textContent = '📜 スクロール型';
   document.getElementById('progressWrap').classList.add('hidden');
