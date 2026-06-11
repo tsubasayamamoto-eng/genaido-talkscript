@@ -1692,7 +1692,7 @@ const NODES = {
     branches:[
       {style:'go', bt:'✅ 見積提出OK（出してもらえそう）', desc:'送り先の確認へ', goto:'s4'},
       {style:'', bt:'🏢 直接の取引はしていない と言われた', desc:'卸・商社を教えてもらう', goto:'s3_dist'},
-      {style:'', bt:'🔁 その商品はない／終了', desc:'類似品を聞く', goto:'s3_alt'}
+      {style:'warn', bt:'🔁 その商品はない／取り扱いなし', desc:'「見送り」で記録して終了', result:'見送り'}
     ],
     naviActions:[{label:'終了', cls:'btn-ghost', abort:true}]
   },
@@ -1709,15 +1709,6 @@ const NODES = {
     branches:[
       {style:'go', bt:'✅ 卸・商社を教えてもらえた', desc:'お礼へ（記録に残ります）', goto:'s6'},
       {style:'warn', bt:'✖ 教えてもらえなかった', desc:'「見送り」で記録して終了', result:'見送り'}
-    ],
-    naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
-  },
-  s3_alt:{ no:3, isSub:true, title:'商品を伝える', h:'その商品が無いとき', when:'近い商品でも構いません',
-    body:()=> fSay({q:'でしたら、近い商品でも構いません。<br>御社で今お出しできる類似品はございますか？'}),
-    branchLead:'◇ どうなりましたか？',
-    branches:[
-      {style:'go', bt:'✅ 類似品を出してもらえそう', desc:'送り先の確認へ', goto:'s4'},
-      {style:'warn', bt:'✖ 取り扱いが合わない', desc:'「見送り」で記録して終了', result:'見送り'}
     ],
     naviActions:[{label:'終了して記録', cls:'btn-ghost', abort:true}]
   },
@@ -1829,7 +1820,7 @@ function prepRender(){
 
 /* ナビ型の遷移テーブル */
 const STEPS = { prep: prepRender };
-['s1','s1_none','s2','s3','s3_dist','s3_alt','s4','s4_form','s5','s6'].forEach(id=>{
+['s1','s1_none','s2','s3','s3_dist','s4','s4_form','s5','s6'].forEach(id=>{
   STEPS[id] = ()=> naviRender(id);
 });
 
