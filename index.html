@@ -282,6 +282,7 @@
   .chip-form{background:var(--say-bg);color:var(--indigo);}
   .chip-note{background:#F0EDE6;color:var(--ink-soft);}
   .chip-sent{background:var(--green);color:#fff;}
+  .chip-unsent{background:var(--coral-bg);color:var(--coral);border:1px solid #f0c9b8;}
   .mail-status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 4px;font-size:13px;}
   .ms-badge{font-weight:700;padding:5px 12px;border-radius:999px;}
   .ms-badge.sent{background:var(--green-bg);color:var(--green);}
@@ -934,6 +935,7 @@ function recCard(r){
   if(r.result==='再架電') chips.push('<span class="chip" style="background:#E7EEF6;color:#3A5A8C">📞 要・再架電</span>');
   if((r.referralMaker||'').trim()) chips.push('<span class="chip" style="background:var(--say-bg);color:var(--indigo)">🔗 紹介から架電</span>');
   if(r.mailSent) chips.push('<span class="chip chip-sent">✅ メール送信済み</span>');
+  else if(r.result==='成立') chips.push('<span class="chip chip-unsent">✉️ メール未送信</span>');
   if(recDistJoined(r)) chips.push('<span class="chip chip-dist">🏢 商社紹介あり</span>');
   if((r.contactEmail||'').trim()) chips.push('<span class="chip chip-mail">✉️ 宛先あり</span>');
   if((r.sendRoute||'').includes('フォーム') || (r.formUrl||'').trim()) chips.push('<span class="chip chip-form">📋 フォーム</span>');
@@ -971,6 +973,7 @@ function openDetailModal(id){
     <p class="dt-time">🕒 ${ts}</p>
     ${(r.referralMaker||'').trim()?`<div class="dt-sent" style="background:var(--say-bg);color:var(--indigo);border-color:#cdd9ec">🔗 ${esc(r.referralMaker)}${(r.referralContact||'').trim()?'（'+esc(r.referralContact)+'様）':''} のご紹介から架電</div>`:''}
     ${r.mailSent?`<div class="dt-sent">✅ メール送信済み${r.mailSentAt?'（'+(()=>{const d=new Date(r.mailSentAt);return (d.getMonth()+1)+'/'+d.getDate()+' '+pad2(d.getHours())+':'+pad2(d.getMinutes());})()+'）':''}</div>`:''}
+    ${(!r.mailSent && r.result==='成立')?`<div class="dt-sent" style="background:var(--coral-bg);color:var(--coral);border-color:#f0c9b8">✉️ メール未送信（送り先は確認済み）</div>`:''}
     ${dist?`<div class="dt-flag">🏢 卸・商社を教えてもらいました<br><b>${esc(dist)}</b></div>`:''}
     <div class="dt-sec"><div class="dt-sec-t">📦 お伝えした商品</div>${prodHtml}
       ${row('容量・サイズ',r.productSize)}${row('希望掛け率',r.productRate)}</div>
@@ -1055,31 +1058,44 @@ function distCalled(distName){
   const k=normalizeCo(distName);
   return loadRecords().some(r=> normalizeCo(r.company)===k);
 }
+function distRowHtml(d){
+  const flag = distCalled(d.name)
+    ? '<span class="mini-flag done">✅ 架電済み</span>'
+    : '<span class="mini-flag todo">未架電</span>';
+  const src = d.sources.map(s=>{const t=new Date(s.date);return `${esc(s.company)}（${t.getMonth()+1}/${t.getDate()}）`;}).join('、');
+  return `<div class="dist-row">
+    <div class="dist-main">
+      <div class="dist-name">${esc(d.name)} ${flag}</div>
+      <div class="dist-src">紹介元：${src}</div>
+    </div>
+    <button class="dist-call">📞 架電</button>
+  </div>`;
+}
 function openDistList(){
   const dists = collectDistributors();
   const back=document.createElement('div'); back.className='modal-back';
+  const flat=[];
   let body;
   if(!dists.length){
     body = `<div class="empty">まだ紹介された卸・商社はありません。<br>架電で「卸・商社の紹介」を記録すると、ここに集まります。</div>`;
   }else{
-    body = dists.map(d=>{
-      const called = distCalled(d.name);
-      const flag = called
-        ? '<span class="mini-flag done">✅ 架電済み</span>'
-        : '<span class="mini-flag todo">未架電</span>';
-      const src = d.sources.map(s=>{const t=new Date(s.date);return `${esc(s.company)}（${t.getMonth()+1}/${t.getDate()}）`;}).join('、');
-      return `<div class="dist-row">
-        <div class="dist-main">
-          <div class="dist-name">${esc(d.name)} ${flag}</div>
-          <div class="dist-src">紹介元：${src}</div>
-        </div>
-        <button class="dist-call">📞 架電</button>
+    const map={}; dists.forEach(d=>{ const k=kanaRow(d.name); (map[k]=map[k]||[]).push(d); });
+    const ordered = ROW_ORDER.filter(k=>map[k]);
+    body = ordered.map(k=>{
+      const items = map[k].slice().sort((a,b)=> stripCo(a.name).localeCompare(stripCo(b.name),'ja'));
+      const rows = items.map(d=>{ flat.push(d); return distRowHtml(d); }).join('');
+      return `<div class="month-folder">
+        <button class="month-head" onclick="toggleMonth(this)">
+          <span>🗂 ${k}</span>
+          <span class="mh-right">${items.length}件 <span class="mh-caret">▾</span></span>
+        </button>
+        <div class="month-body">${rows}</div>
       </div>`;
     }).join('');
   }
   back.innerHTML=`<div class="modal distmodal">
     <h3>🏢 卸・商社リスト</h3>
-    <p>架電で教えてもらった卸・商社の一覧です。ここから直接架電できます（このリストだけCSVにも出せます）。</p>
+    <p>架電で教えてもらった卸・商社を、あいうえお順にまとめています。ここから直接架電できます（CSVにも出せます）。</p>
     ${dists.length?`<div style="text-align:right;margin:-6px 0 12px"><button class="minibtn" onclick="exportDistCSV()">⬇ この一覧をCSV出力</button></div>`:''}
     ${body}
     <button class="rbtn" style="width:100%;margin-top:12px" data-close="1">閉じる</button>
@@ -1089,7 +1105,7 @@ function openDistList(){
   back.querySelectorAll('.dist-call').forEach((btn,i)=>{
     btn.onclick=()=>{
       back.remove();
-      const d=dists[i], s=d.sources[0];
+      const d=flat[i], s=d.sources[0];
       startCall({ company:d.name, referral:{maker:s.company, contact:s.contactName}, products:s.products });
     };
   });
