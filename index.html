@@ -239,9 +239,31 @@
   .minibtn:active{background:#f0ede6;}
 
   .rec{
-    background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:10px;
+    background:#fff;border:1px solid var(--line);border-left:5px solid var(--line);
+    border-radius:14px;padding:13px 14px;margin-bottom:10px;
   }
+  .rec.成立{border-left-color:var(--green);}
+  .rec.卸紹介{border-left-color:var(--indigo);}
+  .rec.再架電{border-left-color:#3A5A8C;}
+  .rec.担当不在{border-left-color:#C9B79A;}
+  .rec.受付拒否{border-left-color:var(--red);}
+  .rec.見送り,.rec.途中終了{border-left-color:#bbb;}
   .rec-top{display:flex;align-items:center;gap:12px;}
+
+  /* 各アクションの件数サマリー */
+  .stat-row{display:flex;flex-wrap:wrap;gap:7px;margin:0 4px 14px;}
+  .stat-pill{font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px;background:#EFEBE2;color:var(--ink-soft);}
+  .stat-pill b{font-size:13.5px;margin-left:3px;}
+  .stat-pill.p-green{background:var(--green-bg);color:var(--green);}
+  .stat-pill.p-coral{background:var(--coral-bg);color:var(--coral);}
+  .stat-pill.p-amber{background:var(--branch-bg);color:var(--branch-ink);}
+  .stat-pill.p-blue{background:#E7EEF6;color:#3A5A8C;}
+  .stat-pill.p-indigo{background:var(--say-bg);color:var(--indigo);}
+  .stat-pill.p-red{background:var(--red-bg);color:var(--red);}
+  .stat-pill.p-grey{background:#EAE7E0;color:#777;}
+
+  /* 直近1週間フォルダ（目立つ色） */
+  .recent-head{background:var(--coral) !important;}
   .mailbtn{width:100%;margin-top:11px;background:var(--say-bg);border:1.5px solid var(--indigo-soft);
     color:var(--indigo);border-radius:10px;padding:11px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;}
   .mailbtn:active{transform:scale(.99);}
@@ -842,10 +864,21 @@ function goHome(){
   if(records.length===0){
     recHtml = `<div class="empty">まだ記録はありません。<br>上のボタンから架電を始めましょう。</div>`;
   }else{
+    const weekAgo = Date.now() - 7*24*3600*1000;
+    const recent = records.filter(r=> new Date(r.finishedAt||r.createdAt).getTime() >= weekAgo)
+      .sort((a,b)=> new Date(b.finishedAt||b.createdAt) - new Date(a.finishedAt||a.createdAt));
+    const recentHtml = recent.length ? `<div class="month-folder">
+        <button class="month-head recent-head" onclick="toggleMonth(this)">
+          <span>📅 直近1週間の架電</span>
+          <span class="mh-right">${recent.length}件 <span class="mh-caret">▾</span></span>
+        </button>
+        <div class="month-body">${recent.map(recCard).join('')}</div>
+      </div>` : '';
     const map = {};
     records.forEach(r=>{ const k=kanaRow(r.company); (map[k]=map[k]||[]).push(r); });
     const ordered = ROW_ORDER.filter(k=>map[k]);
     recHtml = `<p class="list-hint">💡 会社名（メーカー・卸）をあいうえお順にまとめています。タップで詳細が見られます。</p>`
+      + recentHtml
       + ordered.map(k=>{
         const items = map[k].slice().sort((a,b)=> stripCo(a.company).localeCompare(stripCo(b.company), 'ja'));
         return `<div class="month-folder">
@@ -873,9 +906,10 @@ function goHome(){
         <button class="minibtn" onclick="exportCSV()">⬇ CSV出力</button>
       </div>
     </div>
-    <div style="font-size:12.5px;color:var(--ink-soft);margin:0 4px 12px;">
-      今日：${todayCount}件　／　累計の成立：${seikai}件
+    <div style="font-size:12.5px;color:var(--ink-soft);margin:0 4px 8px;">
+      今日：${todayCount}件　／　累計：${records.length}件
     </div>
+    ${statPills(records)}
     ${distCount>0?`<button class="distlist-btn" onclick="openDistList()"><span>🏢 紹介された卸・商社リスト（${distCount}件）</span><span>→</span></button>`:''}
     ${recHtml}
 
@@ -941,7 +975,7 @@ function recCard(r){
   if((r.sendRoute||'').includes('フォーム') || (r.formUrl||'').trim()) chips.push('<span class="chip chip-form">📋 フォーム</span>');
   if((r.note||'').trim()) chips.push('<span class="chip chip-note">📝 メモ</span>');
   const chipsHtml = chips.length ? `<div class="rec-chips">${chips.join('')}</div>` : '';
-  return `<div class="rec">
+  return `<div class="rec ${r.result||'途中終了'}">
     <div class="rec-top">
       <div class="recmain" onclick="openDetailModal('${r.id}')">
         <div class="recco">${esc(co)}<span class="go-detail">›</span></div>
@@ -955,6 +989,21 @@ function recCard(r){
   </div>`;
 }
 
+function statPills(records){
+  const c=(f)=>records.filter(f).length;
+  const defs=[
+    ['🎉 成立', c(r=>r.result==='成立'), 'p-green'],
+    ['✅ メール送信済み', c(r=>r.mailSent), 'p-green'],
+    ['✉️ メール未送信', c(r=>!r.mailSent && r.result==='成立'), 'p-coral'],
+    ['🏢 商社紹介あり', c(r=>recDistJoined(r)), 'p-amber'],
+    ['📞 再架電', c(r=>r.result==='再架電'), 'p-blue'],
+    ['🔗 紹介から架電', c(r=>(r.referralMaker||'').trim()), 'p-indigo'],
+    ['見送り', c(r=>r.result==='見送り'), 'p-grey'],
+    ['受付拒否', c(r=>r.result==='受付拒否'), 'p-red']
+  ].filter(d=>d[1]>0);
+  if(!defs.length) return '';
+  return `<div class="stat-row">${defs.map(d=>`<span class="stat-pill ${d[2]}">${d[0]} <b>${d[1]}</b></span>`).join('')}</div>`;
+}
 function openDetailModal(id){
   const r = loadRecords().find(x=>x.id===id);
   if(!r){ toast("記録が見つかりません"); return; }
