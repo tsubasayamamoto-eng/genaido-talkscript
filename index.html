@@ -841,23 +841,20 @@ function goHome(){
   if(records.length===0){
     recHtml = `<div class="empty">まだ記録はありません。<br>上のボタンから架電を始めましょう。</div>`;
   }else{
-    const groups = []; const map = {};
-    records.forEach(r=>{
-      const k = monthKey(r);
-      if(!map[k]){ map[k] = {key:k, items:[]}; groups.push(map[k]); }
-      map[k].items.push(r);
-    });
-    recHtml = `<p class="list-hint">💡 会社名をタップすると、入力した内容の詳細が見られます。</p>`
-      + groups.map((g,gi)=>{
-      const collapsed = gi>0 ? ' collapsed' : '';
-      return `<div class="month-folder${collapsed}">
-        <button class="month-head" onclick="toggleMonth(this)">
-          <span>📁 ${monthLabel(g.key)}</span>
-          <span class="mh-right">${g.items.length}件 <span class="mh-caret">▾</span></span>
-        </button>
-        <div class="month-body">${g.items.map(recCard).join('')}</div>
-      </div>`;
-    }).join('');
+    const map = {};
+    records.forEach(r=>{ const k=kanaRow(r.company); (map[k]=map[k]||[]).push(r); });
+    const ordered = ROW_ORDER.filter(k=>map[k]);
+    recHtml = `<p class="list-hint">💡 会社名（メーカー・卸）をあいうえお順にまとめています。タップで詳細が見られます。</p>`
+      + ordered.map(k=>{
+        const items = map[k].slice().sort((a,b)=> stripCo(a.company).localeCompare(stripCo(b.company), 'ja'));
+        return `<div class="month-folder">
+          <button class="month-head" onclick="toggleMonth(this)">
+            <span>🗂 ${k}</span>
+            <span class="mh-right">${items.length}件 <span class="mh-caret">▾</span></span>
+          </button>
+          <div class="month-body">${items.map(recCard).join('')}</div>
+        </div>`;
+      }).join('');
   }
 
   document.getElementById('screen').innerHTML = `
@@ -897,9 +894,39 @@ function monthKey(r){ const d=new Date(r.finishedAt||r.createdAt); return d.getF
 function monthLabel(k){ const a=k.split('-'); return a[0]+'年'+parseInt(a[1],10)+'月'; }
 function toggleMonth(btn){ btn.closest('.month-folder').classList.toggle('collapsed'); }
 
+/* 会社名を五十音の「行」に振り分け */
+const ROW_ORDER = ['あ行','か行','さ行','た行','な行','は行','ま行','や行','ら行','わ行','A-Z（英数）','その他'];
+function stripCo(name){
+  return (name||'').trim()
+    .replace(/^(株式会社|有限会社|合同会社|合資会社|合名会社|（株）|\(株\)|（有）|\(有\)|㈱|㈲)/,'')
+    .replace(/^[\s　]+/,'');
+}
+function kanaRow(name){
+  let s = stripCo(name);
+  if(!s) return 'その他';
+  let c = s[0];
+  const code = c.charCodeAt(0);
+  if(code>=0x30A1 && code<=0x30F6){ c = String.fromCharCode(code-0x60); } // カタカナ→ひらがな
+  if(/[A-Za-zＡ-Ｚａ-ｚ0-9０-９]/.test(c)) return 'A-Z（英数）';
+  const rows = [
+    ['あ','あいうえおぁぃぅぇぉゔ'],
+    ['か','かきくけこがぎぐげご'],
+    ['さ','さしすせそざじずぜぞ'],
+    ['た','たちつてとだぢづでどっ'],
+    ['な','なにぬねの'],
+    ['は','はひふへほばびぶべぼぱぴぷぺぽ'],
+    ['ま','まみむめも'],
+    ['や','やゆよゃゅょ'],
+    ['ら','らりるれろ'],
+    ['わ','わをんゎ']
+  ];
+  for(let i=0;i<rows.length;i++){ if(rows[i][1].indexOf(c)>=0) return rows[i][0]+'行'; }
+  return 'その他';
+}
+
 function recCard(r){
   const t = new Date(r.finishedAt||r.createdAt);
-  const ts = `${t.getMonth()+1}/${t.getDate()} ${pad2(t.getHours())}:${pad2(t.getMinutes())}`;
+  const ts = `🕒 ${String(t.getFullYear()).slice(2)}/${t.getMonth()+1}/${t.getDate()} ${pad2(t.getHours())}:${pad2(t.getMinutes())}`;
   const co = r.company || "（会社名なし）";
   const prods = recProductsJoined(r).replace(/ \/ /g, "・");
   const sub = [prods, r.contactName?("→"+r.contactName):"" ].filter(Boolean).join("　");
