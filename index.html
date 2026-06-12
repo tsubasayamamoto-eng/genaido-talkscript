@@ -284,6 +284,21 @@
   .recco .go-detail{color:var(--indigo-soft);font-weight:700;margin-left:4px;}
   .empty{text-align:center;color:var(--ink-soft);font-size:13.5px;padding:24px 10px;}
 
+  /* 検索ボックス */
+  .searchbox{position:relative;display:flex;align-items:center;margin:0 4px 14px;}
+  .searchbox .sb-ic{position:absolute;left:13px;font-size:14px;pointer-events:none;opacity:.55;}
+  .searchbox input{width:100%;border:2px solid var(--line);border-radius:12px;
+    padding:11px 40px 11px 36px;font-size:15px;font-family:inherit;color:var(--ink);background:#fff;
+    transition:border-color .15s ease;}
+  .searchbox input::placeholder{color:#9aa3b0;}
+  .searchbox input:focus{border-color:var(--coral);outline:none;}
+  .searchbox .sb-clear{position:absolute;right:8px;border:none;background:#E7EAF0;color:var(--ink-soft);
+    width:24px;height:24px;border-radius:50%;font-size:15px;line-height:1;cursor:pointer;display:none;
+    font-family:inherit;align-items:center;justify-content:center;padding:0;}
+  .searchbox.has-q .sb-clear{display:flex;}
+  .searchbox .sb-clear:active{transform:scale(.92);}
+  .search-count{font-size:13px;color:var(--ink);font-weight:700;margin:2px 4px 12px;}
+
   /* Month folders */
   .list-hint{font-size:12px;color:var(--ink-soft);margin:0 4px 12px;}
   .month-folder{margin:0 0 16px;}
@@ -860,36 +875,11 @@ function goHome(){
   const seikai = records.filter(r=>r.result==="成立").length;
   const distCount = collectDistributors().length;
 
-  let recHtml;
-  if(records.length===0){
-    recHtml = `<div class="empty">まだ記録はありません。<br>上のボタンから架電を始めましょう。</div>`;
-  }else{
-    const weekAgo = Date.now() - 7*24*3600*1000;
-    const recent = records.filter(r=> new Date(r.finishedAt||r.createdAt).getTime() >= weekAgo)
-      .sort((a,b)=> new Date(b.finishedAt||b.createdAt) - new Date(a.finishedAt||a.createdAt));
-    const recentHtml = recent.length ? `<div class="month-folder">
-        <button class="month-head recent-head" onclick="toggleMonth(this)">
-          <span>📅 直近1週間の架電</span>
-          <span class="mh-right">${recent.length}件 <span class="mh-caret">▾</span></span>
-        </button>
-        <div class="month-body">${recent.map(recCard).join('')}</div>
-      </div>` : '';
-    const map = {};
-    records.forEach(r=>{ const k=kanaRow(r.company); (map[k]=map[k]||[]).push(r); });
-    const ordered = ROW_ORDER.filter(k=>map[k]);
-    recHtml = `<p class="list-hint">💡 会社名（メーカー・卸）をあいうえお順にまとめています。タップで詳細が見られます。</p>`
-      + recentHtml
-      + ordered.map(k=>{
-        const items = map[k].slice().sort((a,b)=> stripCo(a.company).localeCompare(stripCo(b.company), 'ja'));
-        return `<div class="month-folder">
-          <button class="month-head" onclick="toggleMonth(this)">
-            <span>🗂 ${k}</span>
-            <span class="mh-right">${items.length}件 <span class="mh-caret">▾</span></span>
-          </button>
-          <div class="month-body">${items.map(recCard).join('')}</div>
-        </div>`;
-      }).join('');
-  }
+  const searchBox = records.length ? `<div class="searchbox">
+      <span class="sb-ic">🔍</span>
+      <input id="recSearch" type="search" placeholder="会社名・メーカー・卸・商品で検索" oninput="onRecSearch()" autocomplete="off">
+      <button class="sb-clear" onclick="clearRecSearch()" title="クリア" aria-label="クリア">×</button>
+    </div>` : '';
 
   document.getElementById('screen').innerHTML = `
     <div class="home-hero">
@@ -911,7 +901,8 @@ function goHome(){
     </div>
     ${statPills(records)}
     ${distCount>0?`<button class="distlist-btn" onclick="openDistList()"><span>🏢 紹介された卸・商社リスト（${distCount}件）</span><span>→</span></button>`:''}
-    ${recHtml}
+    ${searchBox}
+    <div id="recListArea">${recListHTML(records,'')}</div>
 
     <p class="foot">株式会社玄愛堂 ／ 商品問い合わせ 架電ナビ（パート様用）<br>記録はこの端末のブラウザ内にのみ保存されます。</p>
   `;
@@ -928,6 +919,81 @@ function pad2(n){ return String(n).padStart(2,'0'); }
 function monthKey(r){ const d=new Date(r.finishedAt||r.createdAt); return d.getFullYear()+'-'+pad2(d.getMonth()+1); }
 function monthLabel(k){ const a=k.split('-'); return a[0]+'年'+parseInt(a[1],10)+'月'; }
 function toggleMonth(btn){ btn.closest('.month-folder').classList.toggle('collapsed'); }
+
+/* ===================== キーワード検索 ===================== */
+/* 全角/半角・大文字小文字・カタカナ/ひらがなの違いを吸収して比較しやすくする */
+function normForSearch(s){
+  s = (s==null?'':String(s)).toLowerCase();
+  try{ s = s.normalize('NFKC'); }catch(e){}
+  s = s.replace(/[ァ-ヶ]/g, c=>String.fromCharCode(c.charCodeAt(0)-0x60)); // カタカナ→ひらがな
+  return s;
+}
+/* 1件の記録が、すべてのキーワードを含むか */
+function recMatches(r, tokens){
+  const hay = normForSearch([
+    r.company, recProductsJoined(r), recDistJoined(r),
+    r.contactName, r.contactDept, r.contactEmail, r.contactPhone,
+    r.referralMaker, r.referralContact, r.productSize, r.productRate,
+    r.note, r.result
+  ].filter(Boolean).join(' '));
+  return tokens.every(t=> hay.indexOf(t)>=0);
+}
+/* 記録一覧のHTML（query空＝フォルダ表示／queryあり＝一致カードを一覧表示） */
+function recListHTML(records, query){
+  if(!records || records.length===0){
+    return `<div class="empty">まだ記録はありません。<br>上のボタンから架電を始めましょう。</div>`;
+  }
+  const q = (query||'').trim();
+  if(q){
+    const tokens = normForSearch(q).split(/\s+/).filter(Boolean);
+    const hits = records.filter(r=>recMatches(r,tokens))
+      .sort((a,b)=> new Date(b.finishedAt||b.createdAt) - new Date(a.finishedAt||a.createdAt));
+    if(!hits.length){
+      return `<div class="empty">「${esc(q)}」に一致する記録は見つかりませんでした。<br>会社名・メーカー・卸・商品名などで探せます。</div>`;
+    }
+    return `<p class="search-count">🔍「${esc(q)}」の検索結果：<b>${hits.length}件</b></p>`
+      + hits.map(recCard).join('');
+  }
+  const weekAgo = Date.now() - 7*24*3600*1000;
+  const recent = records.filter(r=> new Date(r.finishedAt||r.createdAt).getTime() >= weekAgo)
+    .sort((a,b)=> new Date(b.finishedAt||b.createdAt) - new Date(a.finishedAt||a.createdAt));
+  const recentHtml = recent.length ? `<div class="month-folder">
+      <button class="month-head recent-head" onclick="toggleMonth(this)">
+        <span>📅 直近1週間の架電</span>
+        <span class="mh-right">${recent.length}件 <span class="mh-caret">▾</span></span>
+      </button>
+      <div class="month-body">${recent.map(recCard).join('')}</div>
+    </div>` : '';
+  const map = {};
+  records.forEach(r=>{ const k=kanaRow(r.company); (map[k]=map[k]||[]).push(r); });
+  const ordered = ROW_ORDER.filter(k=>map[k]);
+  return `<p class="list-hint">💡 会社名（メーカー・卸）をあいうえお順にまとめています。タップで詳細が見られます。</p>`
+    + recentHtml
+    + ordered.map(k=>{
+      const items = map[k].slice().sort((a,b)=> stripCo(a.company).localeCompare(stripCo(b.company), 'ja'));
+      return `<div class="month-folder">
+        <button class="month-head" onclick="toggleMonth(this)">
+          <span>🗂 ${k}</span>
+          <span class="mh-right">${items.length}件 <span class="mh-caret">▾</span></span>
+        </button>
+        <div class="month-body">${items.map(recCard).join('')}</div>
+      </div>`;
+    }).join('');
+}
+function onRecSearch(){
+  const input = document.getElementById('recSearch');
+  const area = document.getElementById('recListArea');
+  if(!area) return;
+  const q = input ? input.value : '';
+  area.innerHTML = recListHTML(loadRecords(), q);
+  const sb = input && input.closest('.searchbox');
+  if(sb) sb.classList.toggle('has-q', !!(q && q.trim()));
+}
+function clearRecSearch(){
+  const input = document.getElementById('recSearch');
+  if(input){ input.value=''; input.focus(); }
+  onRecSearch();
+}
 
 /* 会社名を五十音の「行」に振り分け */
 const ROW_ORDER = ['あ行','か行','さ行','た行','な行','は行','ま行','や行','ら行','わ行','A-Z（英数）','その他'];
@@ -1120,44 +1186,91 @@ function distRowHtml(d){
     <button class="dist-call">📞 架電</button>
   </div>`;
 }
+/* 卸・商社が、すべてのキーワードを含むか（卸名・紹介元・商品で検索） */
+function distMatches(d, tokens){
+  const hay = normForSearch([
+    d.name,
+    d.sources.map(s=>s.company).join(' '),
+    d.sources.map(s=>(s.products||[]).join(' ')).join(' ')
+  ].join(' '));
+  return tokens.every(t=> hay.indexOf(t)>=0);
+}
+/* 卸・商社リスト本体のHTML（flatに表示順で詰める＝架電ボタンの紐付け用） */
+function distListBody(dists, query, flat){
+  flat.length = 0;
+  if(!dists.length){
+    return `<div class="empty">まだ紹介された卸・商社はありません。<br>架電で「卸・商社の紹介」を記録すると、ここに集まります。</div>`;
+  }
+  const q = (query||'').trim();
+  if(q){
+    const tokens = normForSearch(q).split(/\s+/).filter(Boolean);
+    const hits = dists.filter(d=> distMatches(d,tokens))
+      .sort((a,b)=> stripCo(a.name).localeCompare(stripCo(b.name),'ja'));
+    if(!hits.length){
+      return `<div class="empty">「${esc(q)}」に一致する卸・商社は見つかりませんでした。</div>`;
+    }
+    const rows = hits.map(d=>{ flat.push(d); return distRowHtml(d); }).join('');
+    return `<p class="search-count">🔍「${esc(q)}」の検索結果：<b>${hits.length}件</b></p>` + rows;
+  }
+  const map={}; dists.forEach(d=>{ const k=kanaRow(d.name); (map[k]=map[k]||[]).push(d); });
+  const ordered = ROW_ORDER.filter(k=>map[k]);
+  return ordered.map(k=>{
+    const items = map[k].slice().sort((a,b)=> stripCo(a.name).localeCompare(stripCo(b.name),'ja'));
+    const rows = items.map(d=>{ flat.push(d); return distRowHtml(d); }).join('');
+    return `<div class="month-folder">
+      <button class="month-head" onclick="toggleMonth(this)">
+        <span>🗂 ${k}</span>
+        <span class="mh-right">${items.length}件 <span class="mh-caret">▾</span></span>
+      </button>
+      <div class="month-body">${rows}</div>
+    </div>`;
+  }).join('');
+}
 function openDistList(){
   const dists = collectDistributors();
   const back=document.createElement('div'); back.className='modal-back';
   const flat=[];
-  let body;
-  if(!dists.length){
-    body = `<div class="empty">まだ紹介された卸・商社はありません。<br>架電で「卸・商社の紹介」を記録すると、ここに集まります。</div>`;
-  }else{
-    const map={}; dists.forEach(d=>{ const k=kanaRow(d.name); (map[k]=map[k]||[]).push(d); });
-    const ordered = ROW_ORDER.filter(k=>map[k]);
-    body = ordered.map(k=>{
-      const items = map[k].slice().sort((a,b)=> stripCo(a.name).localeCompare(stripCo(b.name),'ja'));
-      const rows = items.map(d=>{ flat.push(d); return distRowHtml(d); }).join('');
-      return `<div class="month-folder">
-        <button class="month-head" onclick="toggleMonth(this)">
-          <span>🗂 ${k}</span>
-          <span class="mh-right">${items.length}件 <span class="mh-caret">▾</span></span>
-        </button>
-        <div class="month-body">${rows}</div>
-      </div>`;
-    }).join('');
-  }
   back.innerHTML=`<div class="modal distmodal">
     <h3>🏢 卸・商社リスト</h3>
     <p>架電で教えてもらった卸・商社を、あいうえお順にまとめています。ここから直接架電できます（CSVにも出せます）。</p>
-    ${dists.length?`<div style="text-align:right;margin:-6px 0 12px"><button class="minibtn" onclick="exportDistCSV()">⬇ この一覧をCSV出力</button></div>`:''}
-    ${body}
+    ${dists.length?`<div style="text-align:right;margin:-6px 0 10px"><button class="minibtn" onclick="exportDistCSV()">⬇ この一覧をCSV出力</button></div>`:''}
+    ${dists.length?`<div class="searchbox">
+      <span class="sb-ic">🔍</span>
+      <input id="distSearch" type="search" placeholder="卸・商社名・紹介元で検索" autocomplete="off">
+      <button class="sb-clear" title="クリア" aria-label="クリア">×</button>
+    </div>`:''}
+    <div id="distListArea"></div>
     <button class="rbtn" style="width:100%;margin-top:12px" data-close="1">閉じる</button>
   </div>`;
+  const area = back.querySelector('#distListArea');
+  function render(q){
+    area.innerHTML = distListBody(dists, q, flat);
+    area.querySelectorAll('.dist-call').forEach((btn,i)=>{
+      btn.onclick=()=>{
+        back.remove();
+        const d=flat[i], s=d.sources[0];
+        startCall({ company:d.name, referral:{maker:s.company, contact:s.contactName}, products:s.products });
+      };
+    });
+  }
+  const si = back.querySelector('#distSearch');
+  const sc = back.querySelector('.distmodal .sb-clear');
+  if(si){
+    si.oninput = ()=>{
+      const sb=si.closest('.searchbox'); if(sb) sb.classList.toggle('has-q', !!si.value.trim());
+      render(si.value);
+    };
+  }
+  if(sc){
+    sc.onclick = ()=>{
+      si.value=''; si.focus();
+      const sb=si.closest('.searchbox'); if(sb) sb.classList.remove('has-q');
+      render('');
+    };
+  }
+  render('');
   back.addEventListener('click', e=>{ if(e.target===back) back.remove(); });
   back.querySelector('[data-close]').onclick=()=> back.remove();
-  back.querySelectorAll('.dist-call').forEach((btn,i)=>{
-    btn.onclick=()=>{
-      back.remove();
-      const d=flat[i], s=d.sources[0];
-      startCall({ company:d.name, referral:{maker:s.company, contact:s.contactName}, products:s.products });
-    };
-  });
   document.body.appendChild(back);
 }
 function exportDistCSV(){
