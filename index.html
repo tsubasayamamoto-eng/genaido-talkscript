@@ -230,6 +230,9 @@
     padding:18px;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(226,107,67,.4);
   }
   .start-btn:active{transform:scale(.99);}
+  .start-btn.secondary{margin-top:10px;background:#fff;color:var(--indigo);
+    border:2px solid rgba(255,255,255,.85);box-shadow:none;font-size:16px;padding:15px;}
+  .start-btn.secondary:active{transform:scale(.99);}
 
   .sec-head{display:flex;align-items:center;justify-content:space-between;margin:22px 4px 10px;}
   .sec-head h3{font-size:15px;margin:0;color:var(--indigo);}
@@ -769,7 +772,7 @@ function newCall(){
     contactName:"", contactEmail:"", contactDept:"", contactPhone:"",
     sendRoute:"", formUrl:"", sendDate:"",
     result:"", note:"", mailSent:false, mailSentAt:null,
-    referralMaker:"", referralContact:""
+    referralMaker:"", referralContact:"", wholesale:false
   };
   PRODUCT_BINDS.forEach(b=> c[b]="");
   DIST_BINDS.forEach(b=> c[b]="");
@@ -888,6 +891,7 @@ function goHome(){
       <h1>商品問い合わせ トークスクリプト</h1>
       <p>表示された<b>🗣のセリフをそのまま読めば</b>大丈夫です。始めるときに<b>進め方（ナビ型／スクロール型）</b>を選べます。</p>
       <button class="start-btn" onclick="startCall()">📞 新しい架電を始める</button>
+      <button class="start-btn secondary" onclick="startCall({wholesale:true})">🏢 問屋・卸へ架電する</button>
     </div>
 
     <div class="sec-head">
@@ -1249,7 +1253,7 @@ function openDistList(){
       btn.onclick=()=>{
         back.remove();
         const d=flat[i], s=d.sources[0];
-        startCall({ company:d.name, referral:{maker:s.company, contact:s.contactName}, products:s.products });
+        startCall({ company:d.name, referral:{maker:s.company, contact:s.contactName}, products:s.products, wholesale:true });
       };
     });
   }
@@ -1508,6 +1512,7 @@ function startCall(prefill){
       cur.company = prefill.company || '';
       if(Array.isArray(prefill.products)){ prefill.products.forEach((p,i)=>{ if(i<PRODUCT_BINDS.length) cur[PRODUCT_BINDS[i]] = p; }); }
       if(prefill.referral){ cur.referralMaker = prefill.referral.maker||''; cur.referralContact = prefill.referral.contact||''; }
+      if(prefill.wholesale || prefill.referral){ cur.wholesale = true; }
     }
   }
   stepStack = [];
@@ -1657,6 +1662,12 @@ function fSelfname(){
   return `<div class="panel indigo"><h3>自分の名乗り（変わりません）</h3>
     <p class="ph" style="margin:0">「${SELF.company}の${SELF.caller}」と名乗ります。</p></div>`;
 }
+/* 問屋・卸への架電のとき：紹介してもらったメーカー・担当者名を入力（トークに差し込まれます） */
+function fReferralFields(){
+  return `<div class="panel"><h3>🔗 紹介元（紹介してもらったメーカー・担当者）</h3>
+    ${fField({label:'紹介元のメーカー名', bind:'referralMaker', ph:'例）〇〇製薬 株式会社', hint:'入力すると「○○様より御社をご紹介いただき」とトークに差し込まれます（空欄でもOK）'})}
+    ${fField({label:'そのメーカーの担当者名（任意）', bind:'referralContact', ph:'例）佐藤'})}</div>`;
+}
 function fMemo(){
   return `<div class="panel"><h3>📝 今回お伝えする商品</h3>
     ${fRepeat({
@@ -1737,11 +1748,12 @@ const NODES = {
   s1:{ no:1, title:'受付突破', h:'受付突破', when:'最初に出た受付の方へ',
     body:()=>{
       const from = refFrom();
-      const q = from
-        ? `お世話になっております。<br>${SELF.company}の${selfShort(SELF.caller)}と申します。<br>${from}より御社をご紹介いただき、<br>ご連絡させていただきました。<br>御社のお見積書を頂きたくご連絡させていただいたのですが、<br>ご担当者の方はお見えでしょうか？`
+      const wholesale = !!cur.wholesale;
+      const q = wholesale
+        ? `お世話になっております。<br>${SELF.company}の${selfShort(SELF.caller)}と申します。<br>${from?`${from}より御社をご紹介いただき、<br>`:''}御社のお見積書を頂きたくご連絡させていただいたのですが、<br>ご担当者の方はお見えでしょうか？`
         : `お世話になっております。<br>${SELF.company}の${selfShort(SELF.caller)}と申します。<br>御社HPの商品ラインナップを拝見させていただき、<br>商品のお見積書をいただきたくご連絡させていただきました。<br>ご担当者の方はお見えでしょうか？`;
-      const yoken = from
-        ? `${esc((cur.referralMaker||'').trim())}様からのご紹介で、<b>商品のお取り扱い・お見積りのご相談</b>とお伝えください。`
+      const yoken = wholesale
+        ? `${from?`${esc((cur.referralMaker||'').trim())}様からのご紹介で、`:''}<b>商品のお取り扱い・お見積りのご相談</b>とお伝えください。`
         : '御社の商品の<b>お見積りの件</b>、とお伝えください。';
       return `<div class="step-art">${PHONE_SVG}</div>`
         + fSay({q})
@@ -1774,15 +1786,16 @@ const NODES = {
   s2:{ no:2, title:'担当者と話す', h:'担当者と話す', when:'ご本人が電話口に出たら',
     body:()=>{
       const from = refFrom();
-      const small = from
-        ? `弊社は愛知県で小売業を営んでおり、<br>商品ラインナップの幅を広げようと検討しており、<br>このたび${from}より御社をご紹介いただきました。<br>ぜひ<b>新たな仕入れ候補</b>として検討させていただきたく、ご連絡いたしました。`
+      const wholesale = !!cur.wholesale;
+      const small = wholesale
+        ? `弊社は愛知県で小売業を営んでおり、<br>商品ラインナップの幅を広げようと検討しており、<br>${from?`このたび${from}より御社をご紹介いただきました。<br>`:''}ぜひ<b>新たな仕入れ候補</b>として検討させていただきたく、ご連絡いたしました。`
         : `弊社は愛知県で小売業を営んでおり、<br>現在はECショップを運営しており、将来的には実店舗も見据えております。<br>商品ラインナップの幅を広げようと検討していたところ、<br>御社のHPで取り扱い商品を拝見し、<br>ぜひ<b>新たな仕入れ候補</b>として検討させていただきたく、ご連絡いたしました。`;
       return `<div class="step-art">${CLIENT_SVG}</div>`
         + fSay({
           q:`お忙しいところ恐れ入ります。<br>${selfShort(SELF.company)}の${selfShort(SELF.caller)}と申します。`,
           small
         })
-        + (from ? fSay({q:'毎月のお取引としては、<br>月間でおよそ<b>300〜500万円以上</b>を想定しております。<br>安定して継続的に仕入れさせていただきたく存じます。'}) : '')
+        + (wholesale ? fSay({q:'毎月のお取引としては、<br>月間でおよそ<b>300〜500万円以上</b>を想定しております。<br>安定して継続的に仕入れさせていただきたく存じます。'}) : '')
         + fHelper({label:'「どのような販売方法ですか？」と聞かれたら', html:'現在は自社のECショップを中心に運営しており、将来的には実店舗の展開も見据えております。'})
         + fHelper({label:'「具体的にどんなEC（モール）ですか？」と聞かれたら', html:'主に楽天市場とYahoo!ショッピングで販売しております。'})
         + fHelper({label:'「今までどこから仕入れているのですか？」と聞かれたら', html:'メーカー様から直接、または卸業者様から仕入れております。'})
@@ -1913,6 +1926,7 @@ function prepRender(){
     <p class="step-when">相手の会社名と、今回すすめる商品をメモしておきます（後で記録に残ります）。</p>
     ${fSelfname()}
     ${fCompanyField()}
+    ${cur.wholesale ? fReferralFields() : ''}
     ${fMemo()}
     ${fGoal()}
   `;
@@ -2005,6 +2019,7 @@ function renderScroll(){
 
   const prepInner = `${fSelfname()}
     ${fCompanyField()}
+    ${cur.wholesale ? fReferralFields() : ''}
     ${fMemo()}
     ${fGoal()}`;
 
@@ -2023,6 +2038,11 @@ function renderScroll(){
     screen.querySelectorAll('.prodref').forEach(el=> el.textContent = p1);
     screen.querySelectorAll('.prodrest').forEach(el=> el.innerHTML = restProductsText());
     screen.querySelectorAll('.prodmemo-ro').forEach(el=> el.innerHTML = memoRefInner());
+  });
+  // 紹介元メーカー・担当者を入力し終えたら、トーク内の差し込みを反映するため再描画
+  screen.addEventListener('change', (e)=>{
+    const b = e.target && e.target.getAttribute && e.target.getAttribute('data-bind');
+    if(b==='referralMaker' || b==='referralContact'){ syncInputs(); renderScroll(); }
   });
 
   setActions([
