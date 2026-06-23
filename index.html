@@ -502,6 +502,13 @@
   .subresult:active{transform:scale(.99);}
   .subresult.warn{background:var(--red-bg);border-color:var(--red);color:var(--red);}
   .subresult.warn b{color:var(--red);}
+
+  /* 架電候補リスト（Keepa）埋め込み */
+  .keepa-bar{background:var(--say-bg);border:1px solid #d4e0f1;border-radius:14px;padding:12px 14px;margin:8px 0 12px;}
+  .keepa-bar-t{font-weight:700;color:var(--indigo);font-size:15px;}
+  .keepa-bar-d{font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.6;}
+  .keepa-wrap{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#eef3ff;}
+  .keepa-wrap iframe{width:100%;height:78vh;min-height:520px;border:0;display:block;}
 </style>
 </head>
 <body>
@@ -892,6 +899,7 @@ function goHome(){
       <p>表示された<b>🗣のセリフをそのまま読めば</b>大丈夫です。始めるときに<b>進め方（ナビ型／スクロール型）</b>を選べます。</p>
       <button class="start-btn" onclick="startCall()">📞 新しい架電を始める</button>
       <button class="start-btn secondary" onclick="startCall({wholesale:true})">🏢 問屋・卸へ架電する</button>
+      <button class="start-btn secondary" onclick="openKeepaList()">📋 架電候補リスト（Keepaから作成）</button>
     </div>
 
     <div class="sec-head">
@@ -911,6 +919,28 @@ function goHome(){
     <p class="foot">株式会社玄愛堂 ／ 商品問い合わせ 架電ナビ（パート様用）<br>記録はこの端末のブラウザ内にのみ保存されます。</p>
   `;
 }
+
+/* ===================== 架電候補リスト（Keepa：埋め込み） ===================== */
+function openKeepaList(){
+  cur=null; stepStack=[]; currentStepId=null;
+  setTop("架電候補リスト", 0);
+  setActions(null);
+  document.getElementById('progressWrap').classList.add('hidden');
+  document.getElementById('screen').innerHTML = `
+    <div class="keepa-bar">
+      <div class="keepa-bar-t">📋 架電候補リスト（Keepa）</div>
+      <div class="keepa-bar-d">Keepaの CSV を入れて、各メーカーの「📞 架電」から直接トークを始められます。結果は対応状況へ自動で反映されます。</div>
+    </div>
+    <div class="keepa-wrap"><iframe id="keepaFrame" src="keepa.html" title="架電候補リスト"></iframe></div>
+  `;
+}
+/* 架電リスト（iframe）からの「このメーカーへ架電」要求を受けてトークを開始 */
+window.addEventListener('message', function(e){
+  const d = e.data || {};
+  if(d.type === 'gad-callMaker' && d.maker){
+    startCall({ company:d.maker, phone:d.tel||'', listMaker:d.maker });
+  }
+});
 
 function delRecord(id){
   if(!confirm("この記録を削除しますか？")) return;
@@ -1513,6 +1543,8 @@ function startCall(prefill){
       if(Array.isArray(prefill.products)){ prefill.products.forEach((p,i)=>{ if(i<PRODUCT_BINDS.length) cur[PRODUCT_BINDS[i]] = p; }); }
       if(prefill.referral){ cur.referralMaker = prefill.referral.maker||''; cur.referralContact = prefill.referral.contact||''; }
       if(prefill.wholesale || prefill.referral){ cur.wholesale = true; }
+      if(prefill.phone){ cur.contactPhone = prefill.phone; }
+      if(prefill.listMaker){ cur.listMaker = prefill.listMaker; }
     }
   }
   stepStack = [];
@@ -1561,8 +1593,24 @@ function openResultPicker(opts){
 }
 function finishWith(result){
   saveCurrent(result);
+  writeBackToKeepa(cur.listMaker, result);
   toast(result==="成立" ? "成立で記録しました 🎉" : "「"+result+"」で記録しました");
   goHome();
+}
+/* 架電候補リスト（Keepa）から始めた架電なら、結果を対応状況へ反映 */
+function writeBackToKeepa(maker, result){
+  if(!maker) return;
+  const map = {'成立':'called','卸紹介':'called','見送り':'called','途中終了':'called','再架電':'callback','担当不在':'absent','受付拒否':'rejected'};
+  const code = map[result] || 'called';
+  try{
+    const KEY='makerCallList_status';
+    const st = JSON.parse(localStorage.getItem(KEY)||'{}');
+    st[maker] = code;
+    localStorage.setItem(KEY, JSON.stringify(st));
+  }catch(e){}
+  // 開いている架電リスト画面があればライブ更新
+  const fr = document.getElementById('keepaFrame');
+  if(fr && fr.contentWindow){ try{ fr.contentWindow.postMessage({type:'gad-callResult', maker:maker, result:result}, '*'); }catch(e){} }
 }
 // どのステップからでも呼べる「中断して結果記録」
 function abortPicker(){
