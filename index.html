@@ -503,12 +503,12 @@
   .subresult.warn{background:var(--red-bg);border-color:var(--red);color:var(--red);}
   .subresult.warn b{color:var(--red);}
 
-  /* 架電候補リスト（Keepa）埋め込み */
-  .keepa-bar{background:var(--say-bg);border:1px solid #d4e0f1;border-radius:14px;padding:12px 14px;margin:8px 0 12px;}
+  /* 架電候補リスト（Keepa）埋め込み：画面いっぱい（フルブリード） */
+  .keepa-bar{position:relative;width:100vw;margin-left:calc(50% - 50vw);background:var(--say-bg);border-top:1px solid #d4e0f1;border-bottom:1px solid #d4e0f1;padding:12px max(16px,calc(50vw - 580px));margin-top:-2px;}
   .keepa-bar-t{font-weight:700;color:var(--indigo);font-size:15px;}
   .keepa-bar-d{font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.6;}
-  .keepa-wrap{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#eef3ff;}
-  .keepa-wrap iframe{width:100%;height:78vh;min-height:520px;border:0;display:block;}
+  .keepa-wrap{position:relative;width:100vw;margin-left:calc(50% - 50vw);background:#eef3ff;border-top:1px solid var(--line);}
+  .keepa-wrap iframe{width:100%;height:88vh;min-height:560px;border:0;display:block;}
 </style>
 </head>
 <body>
