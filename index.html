@@ -130,6 +130,15 @@
   .rebut .rebut-note{display:block;font-size:12.5px;color:#8a7a52;font-weight:400;margin:0 0 5px;}
   .rebut .rebut-say{display:block;}
   .rebut .rebut-say::before{content:"🗣 ";}
+  /* あまり使わない切り返しの折りたたみ */
+  .rebutfold{margin:8px 0;border:1px dashed var(--line);border-radius:12px;overflow:hidden;background:#fff;}
+  .rebutfold > summary{cursor:pointer;list-style:none;padding:10px 14px;font-size:13px;font-weight:700;
+    color:var(--ink-soft);background:#faf7ef;display:flex;align-items:center;gap:8px;}
+  .rebutfold > summary::-webkit-details-marker{display:none;}
+  .rebutfold > summary::before{content:"▶";font-size:10px;color:var(--ink-soft);transition:transform .15s ease;}
+  .rebutfold[open] > summary::before{transform:rotate(90deg);}
+  .rebutfold .rfbody{padding:4px 12px 12px;}
+  .rebutfold .rfbody .rebuts{margin:0;}
 
   /* Memo / record fields */
   .field{margin:12px 0;}
@@ -1646,8 +1655,8 @@ function fSay(b){
 function fHelper(b){
   return `<details class="helper"><summary>${b.label}</summary><div class="hbody">${b.html}</div></details>`;
 }
-function fRebuts(b){
-  const items = b.items.map(it=>{
+function fRebutItems(b){
+  return b.items.map(it=>{
     const cls = b.variant==='indigo' ? ' style="background:var(--say-bg);color:var(--say-ink)"' : '';
     const bcl = b.variant==='indigo' ? ' style="color:var(--indigo)"' : '';
     if(it.note){
@@ -1655,7 +1664,16 @@ function fRebuts(b){
     }
     return `<div class="rebut"${cls}><b${bcl}>${it.b}</b>${it.text}</div>`;
   }).join('');
-  return `${b.lead?`<p class="lead">${b.lead}</p>`:''}<div class="rebuts">${items}</div>`;
+}
+function fRebuts(b){
+  return `${b.lead?`<p class="lead">${b.lead}</p>`:''}<div class="rebuts">${fRebutItems(b)}</div>`;
+}
+/* あまり使わない切り返しを折りたたみ（既定は閉じる）でまとめる */
+function fRebutsFold(b){
+  return `<details class="rebutfold">
+    <summary>${b.summary}</summary>
+    <div class="rfbody"><div class="rebuts">${fRebutItems(b)}</div></div>
+  </details>`;
 }
 function fNote(b){
   const st = b.bold ? 'font-size:13px;color:var(--ink-soft);font-weight:700;margin:16px 0 8px;'
@@ -1850,11 +1868,13 @@ const NODES = {
         + fHelper({label:'「具体的にどんなEC（モール）ですか？」と聞かれたら', html:'主に楽天市場とYahoo!ショッピングで販売しております。'})
         + fHelper({label:'「今までどこから仕入れているのですか？」と聞かれたら', html:'メーカー様から直接、または卸業者様から仕入れております。'})
         + fRebuts({lead:'◇ 断られたら（相手がこう言ったら、🗣のセリフでそのまま切り返します）', items:[
-          {b:'★ まず「卸先」を聞く（メーカーさんには最優先）', note:'断られても、すぐ引かずに。直接が難しくても、扱っている卸・商社を教えてもらえれば、そこから仕入れにつなげられます。', text:'さようでございますか。それでしたら、御社の商品をお取り扱いしている卸会社や商社などを、もしよろしければお教えいただくことは出来ますでしょうか？'},
+          {b:'★ まず「卸先」を聞く（メーカーさんには最優先）', note:'断られても、すぐ引かずに。直接が難しくても、扱っている卸・商社を教えてもらえれば、そこから仕入れにつなげられます。できれば愛知県の取引先を伺います。', text:'さようでございますか。それでしたら、御社の商品をお取り扱いしている卸会社や商社などを、できれば<b>愛知県の取引先</b>がございましたら、もしよろしければお教えいただくことは出来ますでしょうか？'},
+          {b:'「こちらから折り返します」と言われたら', note:'折り返しはほとんど返ってきません。相手任せにせず、こちらからかけ直す形にします。', text:'ありがとうございます。お忙しいところ恐れ入りますので、こちらから改めてお電話させていただきます。何時頃でしたらお手すきでしょうか？'}
+        ]})
+        + fRebutsFold({summary:'その他の切り返し（あまり使いません：結構です／資料がない／条件が厳しい）', items:[
           {b:'「結構です」', note:'そっけなく断られたとき。すぐ引かず、ひと言だけ返します。', text:'今すぐ必要ないとは思いますが、同じ商材を扱うお客様も弊社経由で販売数が伸びた実績がありまして〜'},
           {b:'「資料・サイトがない」', note:'「送れる資料がない」と言われたとき。きれいな資料は不要、と伝えます。', text:'綺麗な資料でなくて大丈夫です。普段お使いの商品リストや価格表（Excel）でも構いません〜'},
-          {b:'「大量・現金じゃないと無理」', note:'取引の条件が厳しそうなとき。無理はさせない、と伝えます。', text:'無理なロットはお願いしません。小ロットのお試しから、お支払いも御社の規定に合わせます〜'},
-          {b:'「こちらから折り返します」と言われたら', note:'折り返しはほとんど返ってきません。相手任せにせず、こちらからかけ直す形にします。', text:'ありがとうございます。お忙しいところ恐れ入りますので、こちらから改めてお電話させていただきます。何時頃でしたらお手すきでしょうか？'}
+          {b:'「大量・現金じゃないと無理」', note:'取引の条件が厳しそうなとき。無理はさせない、と伝えます。', text:'無理なロットはお願いしません。小ロットのお試しから、お支払いも御社の規定に合わせます〜'}
         ]});
     },
     naviActions:[
@@ -1879,7 +1899,7 @@ const NODES = {
   },
   s3_dist:{ no:3, isSub:true, title:'商品を伝える', h:'「直接の取引はしていない」と言われたら', when:'仕入れ先の卸・商社を教えてもらいます',
     body:()=>
-      fSay({q:'さようでございますか。<br>それでしたら、御社の商品をお取り扱いしている<b>卸会社や商社</b>などを、<br>もしよろしければお教えいただくことは出来ますでしょうか？'})
+      fSay({q:'さようでございますか。<br>それでしたら、御社の商品をお取り扱いしている<b>卸会社や商社</b>などを、<br>できれば<b>愛知県の取引先</b>がございましたら、<br>もしよろしければお教えいただくことは出来ますでしょうか？'})
       + fRepeat({
           binds:DIST_BINDS,
           labelEach:i=>'卸・商社名'+maru(i)+'（メモ）',
