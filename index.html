@@ -1600,8 +1600,10 @@ function finishWith(result){
 /* 架電候補リスト（Keepa）から始めた架電なら、結果を対応状況へ反映 */
 function writeBackToKeepa(maker, result){
   if(!maker) return;
-  const map = {'成立':'called','卸紹介':'called','見送り':'called','途中終了':'called','再架電':'callback','担当不在':'absent','受付拒否':'rejected'};
-  const code = map[result] || 'called';
+  // 途中終了は「未対応のまま（候補に残す）」＝対応状況を変えない
+  const map = {'成立':'called','卸紹介':'called','見送り':'called','再架電':'callback','担当不在':'absent','受付拒否':'rejected'};
+  const code = map[result];
+  if(!code) return;
   try{
     const KEY='makerCallList_status';
     const st = JSON.parse(localStorage.getItem(KEY)||'{}');
