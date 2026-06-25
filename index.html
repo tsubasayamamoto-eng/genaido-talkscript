@@ -1806,8 +1806,8 @@ const NODES = {
       const from = refFrom();
       const wholesale = !!cur.wholesale;
       const q = wholesale
-        ? `お世話になっております。<br>${SELF.company}の${selfShort(SELF.caller)}と申します。<br>${from?`${from}より御社をご紹介いただき、<br>`:''}御社のお見積書を頂きたくご連絡させていただいたのですが、<br>ご担当者の方はお見えでしょうか？`
-        : `お世話になっております。<br>${SELF.company}の${selfShort(SELF.caller)}と申します。<br>御社HPの商品ラインナップを拝見させていただき、<br>商品のお見積書をいただきたくご連絡させていただきました。<br>ご担当者の方はお見えでしょうか？`;
+        ? `お世話になっております。<br>${SELF.company}の${selfShort(SELF.caller)}と申します。<br>${from?`${from}より御社をご紹介いただき、<br>`:''}御社のお見積書を頂きたくご連絡させていただきました。<br>お忙しいところ恐れ入りますが、<br>ご担当者の方はお見えでしょうか？`
+        : `お世話になっております。<br>${SELF.company}の${selfShort(SELF.caller)}と申します。<br>御社HPの商品ラインナップを拝見させていただき、<br>御社のお見積書を頂きたくご連絡させていただきました。<br>お忙しいところ恐れ入りますが、<br>ご担当者の方はお見えでしょうか？`;
       const yoken = wholesale
         ? `${from?`${esc((cur.referralMaker||'').trim())}様からのご紹介で、`:''}<b>商品のお取り扱い・お見積りのご相談</b>とお伝えください。`
         : '御社の商品の<b>お見積りの件</b>、とお伝えください。';
