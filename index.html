@@ -480,6 +480,9 @@
     background:#fff;color:#cfc8ba;font-size:19px;font-weight:700;cursor:pointer;line-height:1;
     display:flex;align-items:center;justify-content:center;transition:all .15s ease;}
   .donebtn:active{transform:scale(.9);}
+  .donewrap{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px;}
+  .donehint{font-size:12px;color:var(--ink-soft);}
+  .scroll-step.done .donehint{display:none;}
   .scroll-step.done{background:var(--green-bg);border-color:var(--green);}
   .scroll-step.done .step-num{background:var(--green);}
   .scroll-step.done .donebtn{background:var(--green);border-color:var(--green);color:#fff;}
@@ -2031,10 +2034,10 @@ function sCard(numLabel, title, when, inner){
   return `<div class="scroll-step">
     <div class="sstep-head">
       <div class="step-title"><span class="step-num">${numLabel}</span><h2>${title}</h2></div>
-      <button class="donebtn" onclick="toggleDone(this)" title="読んだらチェック">✓</button>
     </div>
     <p class="step-when">${when}</p>
     ${inner}
+    <div class="donewrap"><span class="donehint">読み終えたら →</span><button class="donebtn" onclick="toggleDone(this)" title="読んだらチェック">✓</button></div>
   </div>`;
 }
 /* チェック切り替え（色が変わる＋フラッシュ） */
