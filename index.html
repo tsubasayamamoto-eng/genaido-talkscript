@@ -1864,10 +1864,12 @@ const NODES = {
           {b:'「大量・現金じゃないと無理」', note:'取引の条件が厳しそうなとき。無理はさせない、と伝えます。', text:'無理なロットはお願いしません。小ロットのお試しから、お支払いも御社の規定に合わせます〜'}
         ]});
     },
-    naviActions:[
-      {label:'次へ：狙う商品を伝える →', cls:'btn-primary', go:'s3'},
-      {label:'終了', cls:'btn-ghost', abort:true}
-    ]
+    branchLead:'◇ 相手の返事は？',
+    branches:[
+      {style:'go', bt:'✅ このまま進めそう', desc:'狙う商品を伝えるへ', goto:'s3'},
+      {style:'', bt:'🏢 直接の取引はしていない／問屋を紹介してくれそう', desc:'卸・商社を教えてもらう', goto:'s3_dist', noInline:true}
+    ],
+    naviActions:[{label:'終了', cls:'btn-ghost', abort:true}]
   },
   s3:{ no:3, title:'商品を伝える', h:'★ 狙う商品を伝える', when:'事前に決めた商品名を、こちらから指名します',
     body:(m)=>
@@ -2049,7 +2051,7 @@ function scrollNode(id){
     inner += `<div class="choices">` + n.branches.map(b=>{
       const cls = b.style==='go' ? 'binfo go' : b.style==='warn' ? 'binfo warn' : 'binfo';
       let extra = '';
-      const sub = b.goto && NODES[b.goto] && NODES[b.goto].isSub ? NODES[b.goto] : null;
+      const sub = (!b.noInline) && b.goto && NODES[b.goto] && NODES[b.goto].isSub ? NODES[b.goto] : null;
       if(sub){
         extra = `<div class="subblock">${sub.body('scroll')}`
           + (sub.branchLead ? `<p class="subline" style="font-weight:700;color:var(--indigo)">${sub.branchLead}</p>` : '')
