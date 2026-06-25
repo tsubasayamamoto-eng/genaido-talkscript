@@ -95,6 +95,9 @@
   .say .small{font-size:15px;color:var(--say-ink);display:block;margin-top:8px;font-weight:500;line-height:1.95;}
 
   .lead{font-size:13px;color:var(--ink-soft);font-weight:700;margin:18px 0 8px;}
+  .flowtip{background:#FFF6E9;border:1px solid #f0d9b0;border-radius:12px;padding:10px 13px;
+    font-size:13px;color:#8a6d2f;line-height:1.65;margin:0 0 12px;}
+  .flowtip b{color:#6b531f;font-weight:800;}
 
   /* Branch buttons (relpy choices) */
   .choices{display:flex;flex-direction:column;gap:10px;margin:6px 0;}
@@ -1847,6 +1850,7 @@ const NODES = {
         ? `弊社は愛知県で小売業を営んでおり、<br>商品ラインナップの幅を広げようと検討しており、<br>${from?`このたび${from}より御社をご紹介いただきました。<br>`:''}ぜひ<b>新たな仕入れ候補</b>として検討させていただきたく、ご連絡いたしました。<br>恐れ入りますが、御社から<b>お見積書</b>をいただくことは可能でしょうか？`
         : `弊社は愛知県で小売業を営んでおり、<br>現在はECショップを運営しており、将来的には実店舗も見据えております。<br>商品ラインナップの幅を広げようと検討していたところ、<br>御社のHPで取り扱い商品を拝見し、<br>ぜひ<b>新たな仕入れ候補</b>として検討させていただきたく、ご連絡いたしました。<br>恐れ入りますが、御社から<b>お見積書</b>をいただくことは可能でしょうか？`;
       return `<div class="step-art">${CLIENT_SVG}</div>`
+        + `<div class="flowtip">📞 受付の方から<b>担当者に代わったら</b>、相手が変わっています。<br>下の🗣を<b>最初からもう一度</b>、担当者の方にお伝えします。</div>`
         + fSay({
           q:`お忙しいところ恐れ入ります。<br>${selfShort(SELF.company)}の${selfShort(SELF.caller)}と申します。`,
           small
