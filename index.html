@@ -541,17 +541,7 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- パスワードゲート -->
-<div class="auth-back" id="authBack">
-  <div class="auth-box">
-    <div class="auth-art" id="authArt"></div>
-    <h2>玄愛堂 トークスクリプト</h2>
-    <p class="auth-lead">パスワードを入力してください</p>
-    <input type="password" id="authInput" placeholder="パスワード" autocomplete="current-password" autocapitalize="off" autocorrect="off">
-    <button id="authBtn">入る</button>
-    <p class="auth-err" id="authErr"></p>
-  </div>
-</div>
+<!-- パスワードゲートは廃止しました -->
 
 <script>
 /* ===================== パスワードゲート ===================== */
@@ -757,13 +747,8 @@ function tryAuth(){
   }
 }
 function initAuth(){
-  var back=document.getElementById('authBack');
-  if(authValid()){ if(back) back.remove(); return; }
-  var art=document.getElementById('authArt'); if(art) art.innerHTML=OPERATOR_SVG;
-  var btn=document.getElementById('authBtn'), inp=document.getElementById('authInput');
-  btn.onclick=tryAuth;
-  inp.addEventListener('keydown',function(e){ if(e.key==='Enter') tryAuth(); });
-  setTimeout(function(){ inp.focus(); }, 100);
+  /* パスワードゲートは廃止。互換のため関数は残置（何もしない） */
+  var back=document.getElementById('authBack'); if(back) back.remove();
 }
 
 /* ===================== データ（玄愛堂 固定スクリプト） ===================== */
