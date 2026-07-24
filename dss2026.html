@@ -96,6 +96,13 @@ button{cursor:pointer;border:0;background:none}
 .search .ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px}
 .search .clr{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;color:var(--muted);font-size:15px}
 
+.chiprow{display:flex;gap:6px;align-items:center;margin:0 -14px;padding:0 0 0 14px}
+.chiprow .chips{margin:0;padding-left:0}
+.modebtn{
+  flex:0 0 auto;padding:6px 10px;border-radius:99px;background:var(--brand);color:var(--on-brand);
+  font-size:12.5px;font-weight:700;white-space:nowrap;
+}
+.modebtn::after{content:" ⇄";opacity:.7;font-size:11px}
 .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;margin:0 -14px;padding-left:14px;padding-right:14px}
 .chips::-webkit-scrollbar{display:none}
 .chip{
@@ -132,6 +139,14 @@ main{padding:12px 14px 0;display:flex;flex-direction:column;gap:14px}
 .star{flex:0 0 auto;width:34px;height:34px;margin:-4px -4px -4px 0;font-size:17px;line-height:34px;text-align:center;color:var(--line)}
 .star.on{color:var(--star)}
 .name{flex:1;min-width:0}
+.nameline{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+.booth{
+  font-family:var(--mono);font-size:12.5px;font-weight:700;letter-spacing:.02em;
+  color:var(--zc);background:color-mix(in srgb, var(--zc) 13%, transparent);
+  padding:1px 7px;border-radius:6px;white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+.booth.none{color:var(--muted);background:var(--skip-soft);font-size:11px;font-weight:600}
+.card.s-done .booth,.card.s-skip .booth{opacity:.65}
 .name h3{margin:0;font-size:15.5px;font-weight:650;line-height:1.35;font-family:var(--display);letter-spacing:.005em}
 .card.s-done .name h3{color:var(--ink-2)}
 .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;align-items:center}
@@ -219,6 +234,7 @@ main{padding:12px 14px 0;display:flex;flex-direction:column;gap:14px}
 .wrow .wn{flex:1;min-width:0}
 .wrow .wn strong{display:block;font-size:14px;font-weight:650;font-family:var(--display);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wrow .wn strong i{font-family:var(--mono);font-style:normal;font-size:12px;color:var(--zc);font-variant-numeric:tabular-nums}
 .wrow .wn span{font-size:11.5px;color:var(--muted)}
 .wrow .go{flex:0 0 auto;font-size:11px;font-weight:700;color:var(--brand);background:var(--brand-soft);padding:4px 9px;border-radius:99px}
 .wrow .go.off{color:var(--muted);background:var(--skip-soft)}
@@ -284,7 +300,10 @@ main{padding:12px 14px 0;display:flex;flex-direction:column;gap:14px}
     <input id="q" type="search" placeholder="社名・商品名・メモを検索" autocomplete="off" autocapitalize="off">
     <button class="clr" id="qclr" hidden aria-label="検索を消す">✕</button>
   </div>
-  <div class="chips" id="zoneChips"></div>
+  <div class="chiprow">
+    <button class="modebtn" id="modeBtn" title="グループ分けを切り替え">ホール別</button>
+    <div class="chips" id="zoneChips"></div>
+  </div>
   <div class="chips" id="stateChips"></div>
 </header>
 
@@ -337,46 +356,53 @@ main{padding:12px 14px 0;display:flex;flex-direction:column;gap:14px}
 "use strict";
 
 /* ========== 出展社データ（事前リサーチ ⑦取引窓口候補 卸・商社） ========== */
+/* 第4要素＝ブース番号（JDS26会場案内図 2026/7/20時点。複数出展は複数記載） */
 var SEED = [
-  ["ヘルスケア","アルフレッサ ヘルスケア株式会社","卸"],
-  ["ヘルスケア","SB C&S株式会社","流通"],
-  ["ヘルスケア","大木ヘルスケアホールディングス株式会社","卸"],
-  ["ヘルスケア","CBC株式会社","商社/化学"],
-  ["ヘルスケア","株式会社新菱","要確認(B2B)"],
-  ["ヘルスケア","スギホールディングス株式会社","小売"],
-  ["ヘルスケア","株式会社ツルハホールディングス","小売"],
-  ["ヘルスケア","日本一般用医薬品連合会","団体"],
-  ["ヘルスケア","日本家庭薬協会","団体"],
-  ["ヘルスケア","ユニテックフーズ株式会社","食品素材B2B"],
-  ["ヘルスケア","株式会社ROKI","要確認(B2B)"],
-  ["ヘルスケア","Atex Co.,Ltd.","海外OEM"],
-  ["ヘルスケア","Chan Guare Industry Co., Ltd","海外OEM"],
-  ["ヘルスケア","Jiangsu Chenjie Daily Chemical Products Co., Ltd.","海外OEM"],
-  ["ヘルスケア","Shanghai Warmyou Industry Co.,Ltd.","海外OEM"],
-  ["ヘルスケア","Weihai Jieshi Commodity Manufacture Co., Ltd","海外OEM"],
-  ["ビューティケア","株式会社あらた","卸"],
-  ["ビューティケア","伊藤忠リーテイルリンク株式会社","卸/流通"],
-  ["ビューティケア","クロスプラス株式会社","アパレル卸"],
-  ["ビューティケア","株式会社PALTAC","卸"],
-  ["ビューティケア","株式会社フジシールインターナショナル","包材"],
-  ["ビューティケア","株式会社マツキヨココカラ＆カンパニー","小売"],
-  ["ビューティケア","Bloomingventure co.,Ltd.","海外"],
-  ["ビューティケア","EBIN KOREA","海外"],
-  ["ビューティケア","Firstmarket Co.,Ltd.","海外"],
-  ["食と健康","加藤産業株式会社","卸"],
-  ["食と健康","株式会社日本アクセス","卸"],
-  ["食と健康","日本酒類販売株式会社","卸"],
-  ["食と健康","公益財団法人日本ヘルスケア協会","団体"],
-  ["食と健康","株式会社山星屋","菓子卸"],
-  ["ホームケア","中央物産株式会社","卸"],
-  ["ホームケア","Dragon Boat Industry Japan株式会社","海外"],
-  ["ホームケア","丸紅フォレストリンクス株式会社","商社"],
-  ["ホームケア","Dalian Oupai Technology Co., Ltd.","海外"],
-  ["ホームケア","Jieyang Top-Tip's Daily Use Products Co.,Ltd.","海外"],
-  ["ホームケア","Safetec Co., Ltd.","海外"],
-  ["ホームケア","Shanghai Chuangshi Medical Technology Group","海外"]
+  ["ヘルスケア","アルフレッサ ヘルスケア株式会社","卸",["2-070"]],
+  ["ヘルスケア","SB C&S株式会社","流通",[]],
+  ["ヘルスケア","大木ヘルスケアホールディングス株式会社","卸",["3-010"]],
+  ["ヘルスケア","CBC株式会社","商社/化学",["2-017"]],
+  ["ヘルスケア","株式会社新菱","要確認(B2B)",["1-029"]],
+  ["ヘルスケア","スギホールディングス株式会社","小売",["3-033"]],
+  ["ヘルスケア","株式会社ツルハホールディングス","小売",["3-078"]],
+  ["ヘルスケア","日本一般用医薬品連合会","団体",["3-062"]],
+  ["ヘルスケア","日本家庭薬協会","団体",["3-076","3-032"]],
+  ["ヘルスケア","ユニテックフーズ株式会社","食品素材B2B",["1-012"]],
+  ["ヘルスケア","株式会社ROKI","要確認(B2B)",["2-034"]],
+  ["ヘルスケア","Atex Co.,Ltd.","海外OEM",["2-022"]],
+  ["ヘルスケア","Chan Guare Industry Co., Ltd","海外OEM",["2-056"]],
+  ["ヘルスケア","Jiangsu Chenjie Daily Chemical Products Co., Ltd.","海外OEM",["1-004"]],
+  ["ヘルスケア","Shanghai Warmyou Industry Co.,Ltd.","海外OEM",["2-021"]],
+  ["ヘルスケア","Weihai Jieshi Commodity Manufacture Co., Ltd","海外OEM",["2-036"]],
+  ["ビューティケア","株式会社あらた","卸",["1-056","3-030"]],
+  ["ビューティケア","伊藤忠リーテイルリンク株式会社","卸/流通",[]],
+  ["ビューティケア","クロスプラス株式会社","アパレル卸",["7-046"]],
+  ["ビューティケア","株式会社PALTAC","卸",["7-017"]],
+  ["ビューティケア","株式会社フジシールインターナショナル","包材",[]],
+  ["ビューティケア","株式会社マツキヨココカラ＆カンパニー","小売",["7-039","3-022"]],
+  ["ビューティケア","Bloomingventure co.,Ltd.","海外",[]],
+  ["ビューティケア","EBIN KOREA","海外",["7-069"]],
+  ["ビューティケア","Firstmarket Co.,Ltd.","海外",[]],
+  ["食と健康","加藤産業株式会社","卸",["7-010"]],
+  ["食と健康","株式会社日本アクセス","卸",["7-024"]],
+  ["食と健康","日本酒類販売株式会社","卸",["7-001"]],
+  ["食と健康","公益財団法人日本ヘルスケア協会","団体",["7-022"]],
+  ["食と健康","株式会社山星屋","菓子卸",["7-006"]],
+  ["ホームケア","中央物産株式会社","卸",["2-069"]],
+  ["ホームケア","Dragon Boat Industry Japan株式会社","海外",[]],
+  ["ホームケア","丸紅フォレストリンクス株式会社","商社",["1-053"]],
+  ["ホームケア","Dalian Oupai Technology Co., Ltd.","海外",["2-048"]],
+  ["ホームケア","Jieyang Top-Tip's Daily Use Products Co.,Ltd.","海外",["2-046"]],
+  ["ホームケア","Safetec Co., Ltd.","海外",["2-025"]],
+  ["ホームケア","Shanghai Chuangshi Medical Technology Group","海外",[]]
 ];
 var ADDED = "当日追加";
+var NOBOOTH = "ブース番号なし";
+var HALLS = ["東1ホール","東2ホール","東3ホール","東7ホール"];
+function hallOf(b){
+  var n = String(b).charAt(0);
+  return ({"1":"東1ホール","2":"東2ホール","3":"東3ホール","7":"東7ホール"})[n] || NOBOOTH;
+}
 var ZONES = ["ヘルスケア","ビューティケア","食と健康","ホームケア"];
 var GROUPS = ZONES.concat([ADDED]);
 var ZONE_VAR = {"ヘルスケア":"--zone-health","ビューティケア":"--zone-beauty","食と健康":"--zone-food","ホームケア":"--zone-home"};
@@ -391,12 +417,12 @@ var storageOK = true;
 var state = load();
 var mapSrc = readMap();
 
-function newRow(zone,name,kind,custom){
-  return {id:"", zone:zone, name:name, kind:kind, custom:!!custom,
+function newRow(zone,name,kind,custom,booths){
+  return {id:"", zone:zone, name:name, kind:kind, custom:!!custom, booths:booths||[],
           status:"none", star:false, memo:"", person:"", product:"", card:false, pin:null};
 }
 function blank(){
-  var rows = SEED.map(function(r,i){ var o=newRow(r[0],r[1],r[2],false); o.id="s"+i; return o; });
+  var rows = SEED.map(function(r,i){ var o=newRow(r[0],r[1],r[2],false,r[3]); o.id="s"+i; return o; });
   return {rows:rows, note:""};
 }
 function load(){
@@ -449,24 +475,41 @@ function toast(msg){
 /* ========== 共通 ========== */
 var $ = function(s){ return document.querySelector(s); };
 var listEl = $("#list"), openIds = {}, tab = "list";
-var filterZone = "all", filterState = "all", query = "";
+var groupMode = "hall";   // hall | zone
+var filterGroup = "all", filterState = "all", query = "";
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
 function byId(id){ for(var i=0;i<state.rows.length;i++) if(state.rows[i].id===id) return state.rows[i]; return null; }
-function groupsOf(rows){
-  var order = GROUPS.slice();
-  rows.forEach(function(r){ if(order.indexOf(r.zone)<0) order.push(r.zone); });
+function booth(r){ return r.booths && r.booths.length ? r.booths.join(" / ") : ""; }
+/* その行がどのグループに属するか（複数出展はホール別で複数に入る） */
+function groupsOfRow(r){
+  if(groupMode==="zone") return [r.zone];
+  if(r.custom) return [ADDED];
+  if(!r.booths || !r.booths.length) return [NOBOOTH];
+  var hs=[];
+  r.booths.forEach(function(b){ var h=hallOf(b); if(hs.indexOf(h)<0) hs.push(h); });
+  return hs;
+}
+function groupOrder(rows){
+  var order = groupMode==="zone" ? GROUPS.slice() : HALLS.concat([NOBOOTH, ADDED]);
+  rows.forEach(function(r){
+    groupsOfRow(r).forEach(function(g){ if(order.indexOf(g)<0) order.push(g); });
+  });
   return order;
+}
+function groupColor(g){
+  if(ZONE_VAR[g]) return ZONE_VAR[g];
+  return {"東1ホール":"--zone-home","東2ホール":"--zone-health","東3ホール":"--zone-beauty","東7ホール":"--zone-food"}[g] || "--brand";
 }
 
 /* ========== リスト描画 ========== */
 function visible(){
   var q = query.trim().toLowerCase();
   return state.rows.filter(function(r){
-    if(filterZone!=="all" && r.zone!==filterZone) return false;
+    if(filterGroup!=="all" && groupsOfRow(r).indexOf(filterGroup)<0) return false;
     if(filterState==="star"){ if(!r.star) return false; }
     else if(filterState!=="all" && r.status!==filterState) return false;
     if(q){
-      var hay = (r.name+" "+r.kind+" "+r.zone+" "+r.memo+" "+r.person+" "+r.product).toLowerCase();
+      var hay = (r.name+" "+r.kind+" "+r.zone+" "+booth(r)+" "+r.memo+" "+r.person+" "+r.product).toLowerCase();
       if(hay.indexOf(q)<0) return false;
     }
     return true;
@@ -477,11 +520,12 @@ function chipHtml(v,label,n,on,style,dot){
          (dot?'<span class="dot"></span>':'')+'<span>'+esc(label)+'</span><span class="n">'+n+'</span></button>';
 }
 function renderChips(){
-  var zHtml = chipHtml("all","すべて",state.rows.length,filterZone==="all","");
-  groupsOf(state.rows).forEach(function(z){
-    var n = state.rows.filter(function(r){return r.zone===z;}).length;
+  var zHtml = chipHtml("all","すべて",state.rows.length,filterGroup==="all","");
+  groupOrder(state.rows).forEach(function(g){
+    var n = state.rows.filter(function(r){return groupsOfRow(r).indexOf(g)>=0;}).length;
     if(!n) return;
-    zHtml += chipHtml(z, z, n, filterZone===z, "color:var("+(ZONE_VAR[z]||"--brand")+")", true);
+    var label = groupMode==="hall" ? g.replace("ホール","") : g;
+    zHtml += chipHtml(g, label, n, filterGroup===g, "color:var("+groupColor(g)+")", true);
   });
   $("#zoneChips").innerHTML = zHtml;
 
@@ -509,19 +553,34 @@ function render(){
     return;
   }
   var html = "";
-  groupsOf(rows).forEach(function(z){
-    var g = rows.filter(function(r){return r.zone===z;});
+  groupOrder(rows).forEach(function(gname){
+    var g = rows.filter(function(r){return groupsOfRow(r).indexOf(gname)>=0;});
     if(!g.length) return;
-    g.sort(function(a,b){ return (b.star?1:0)-(a.star?1:0); });
-    html += '<section class="group" style="--zc:var('+(ZONE_VAR[z]||"--brand")+')">'+
-            '<h2 class="ghead">'+esc(z)+' <span class="gn">'+g.length+'</span></h2>'+
-            g.map(cardHtml).join("")+'</section>';
+    g.sort(function(a,b){
+      if(!!b.star !== !!a.star) return (b.star?1:0)-(a.star?1:0);
+      return boothIn(a,gname).localeCompare(boothIn(b,gname));
+    });
+    html += '<section class="group" style="--zc:var('+groupColor(gname)+')">'+
+            '<h2 class="ghead">'+esc(gname)+' <span class="gn">'+g.length+'</span></h2>'+
+            g.map(function(r){ return cardHtml(r, gname); }).join("")+'</section>';
   });
   listEl.innerHTML = html;
 }
-function cardHtml(r){
+/* そのグループ内で表示すべきブース番号（ホール別なら該当ホール分のみ） */
+function boothIn(r,gname){
+  if(!r.booths || !r.booths.length) return "";
+  if(groupMode==="hall" && HALLS.indexOf(gname)>=0){
+    var m = r.booths.filter(function(b){ return hallOf(b)===gname; });
+    if(m.length) return m.join(" / ");
+  }
+  return r.booths.join(" / ");
+}
+function cardHtml(r, gname){
   var open = !!openIds[r.id];
   var badge = r.status==="none" ? "" : '<span class="state '+r.status+'">'+STATE_LABEL[r.status]+'</span>';
+  var b = boothIn(r, gname);
+  var bh = b ? '<span class="booth">'+esc(b)+'</span>'
+             : (r.custom ? "" : '<span class="booth none">番号不明</span>');
   var extra = "";
   if(!open){
     if(r.person) extra += '<span class="tag">担当 '+esc(r.person)+'</span>';
@@ -536,7 +595,7 @@ function cardHtml(r){
     '<div class="row">'+
       '<button class="star'+(r.star?" on":"")+'" data-act="star" aria-label="優先" aria-pressed="'+(r.star?"true":"false")+'">'+(r.star?"★":"☆")+'</button>'+
       '<div class="name" data-act="toggle">'+
-        '<h3>'+esc(r.name)+'</h3>'+
+        '<div class="nameline">'+bh+'<h3>'+esc(r.name)+'</h3></div>'+
         '<div class="meta"><span class="tag zone">'+esc(r.kind)+'</span>'+badge+extra+'</div>'+
         peek+
       '</div>'+
@@ -567,12 +626,18 @@ function panelHtml(r){
   '</div>';
 }
 function repaintCard(id){
-  var r = byId(id), el = listEl.querySelector('.card[data-id="'+id+'"]');
-  if(!r || !el){ render(); return; }
+  var r = byId(id);
+  var els = [].slice.call(listEl.querySelectorAll('.card[data-id="'+id+'"]'));
+  if(!r || !els.length){ render(); return; }
   var focused = document.activeElement;
-  var keep = focused && el.contains(focused) ? focused.getAttribute("data-act") : null;
-  var pos = keep ? focused.selectionStart : 0;
-  el.outerHTML = cardHtml(r);
+  var keep = null, pos = 0;
+  els.forEach(function(el){ if(focused && el.contains(focused)) keep = focused.getAttribute("data-act"); });
+  if(keep) pos = focused.selectionStart;
+  els.forEach(function(el){
+    var sec = el.closest(".group"), head = sec ? sec.querySelector(".ghead") : null;
+    var gname = head ? head.firstChild.nodeValue.trim() : "";
+    el.outerHTML = cardHtml(r, gname);
+  });
   if(keep){
     var again = listEl.querySelector('.card[data-id="'+id+'"] [data-act="'+keep+'"]');
     if(again && again.focus){ again.focus(); try{ again.setSelectionRange(pos,pos); }catch(e){} }
@@ -622,9 +687,15 @@ $("#q").addEventListener("input", function(e){
   query = e.target.value; $("#qclr").hidden = !query; render();
 });
 $("#qclr").addEventListener("click", function(){ query=""; $("#q").value=""; $("#qclr").hidden=true; render(); });
+$("#modeBtn").addEventListener("click", function(){
+  groupMode = (groupMode==="hall") ? "zone" : "hall";
+  this.textContent = (groupMode==="hall") ? "ホール別" : "ゾーン別";
+  filterGroup = "all"; render(); window.scrollTo({top:0,behavior:"smooth"});
+  toast(groupMode==="hall" ? "ホール順に並べました" : "ゾーン順に並べました");
+});
 $("#zoneChips").addEventListener("click", function(e){
   var c = e.target.closest(".chip"); if(!c) return;
-  filterZone = c.getAttribute("data-v"); render(); window.scrollTo({top:0,behavior:"smooth"});
+  filterGroup = c.getAttribute("data-v"); render(); window.scrollTo({top:0,behavior:"smooth"});
 });
 $("#stateChips").addEventListener("click", function(e){
   var c = e.target.closest(".chip"); if(!c) return;
@@ -650,7 +721,7 @@ document.querySelector(".dock").addEventListener("click", function(e){
 });
 function jumpTo(id){
   setTab("list");
-  filterZone="all"; filterState="all"; query=""; $("#q").value=""; $("#qclr").hidden=true;
+  filterGroup="all"; filterState="all"; query=""; $("#q").value=""; $("#qclr").hidden=true;
   openIds[id]=true; render();
   var el = listEl.querySelector('.card[data-id="'+id+'"]');
   if(el){ el.scrollIntoView({behavior:"smooth",block:"center"}); el.classList.add("flash"); }
@@ -827,7 +898,7 @@ function renderPins(){
   pinsEl.innerHTML = state.rows.filter(function(r){return r.pin;}).map(function(r){
     return '<div class="pin p-'+r.status+(r.star?" starred":"")+'" data-id="'+r.id+'" '+
            'style="left:'+(r.pin.x*100)+'%;top:'+(r.pin.y*100)+'%">'+
-           '<span class="bub">'+esc(r.name)+'</span><span class="tip"></span><span class="dot"></span></div>';
+           '<span class="bub">'+esc(booth(r)? booth(r)+' '+r.name : r.name)+'</span><span class="tip"></span><span class="dot"></span></div>';
   }).join("");
   clampAndDraw();
 }
@@ -860,7 +931,7 @@ function renderWant(){
 }
 function wrow(r){
   return '<button class="wrow" data-id="'+r.id+'" style="--zc:var('+(ZONE_VAR[r.zone]||"--brand")+')">'+
-    '<span class="wn"><strong>'+(r.star?"★ ":"")+esc(r.name)+'</strong>'+
+    '<span class="wn"><strong>'+(r.star?"★ ":"")+(booth(r)?'<i>'+esc(booth(r))+'</i> ':'')+esc(r.name)+'</strong>'+
     '<span>'+esc(r.zone)+(r.product?' ／ '+esc(r.product):'')+(r.status!=="none"?' ／ '+STATE_LABEL[r.status]:'')+'</span></span>'+
     '<span class="go'+(r.pin?"":" off")+'">'+(r.pin?"地図で見る":"リストへ")+'</span></button>';
 }
@@ -924,12 +995,12 @@ function reportText(){
   var done = state.rows.filter(function(r){return r.status==="done";}).length;
   var fu = state.rows.filter(function(r){return r.status==="follow";}).length;
   L.push("訪問済 "+done+" 社 / 要フォロー "+fu+" 社");
-  groupsOf(state.rows).forEach(function(z){
+  GROUPS.forEach(function(z){
     var g = state.rows.filter(function(r){return r.zone===z && r.status!=="none" && r.status!=="skip";});
     if(!g.length) return;
     L.push(""); L.push("【"+z+"】");
     g.forEach(function(r){
-      L.push("・"+(r.star?"★ ":"")+r.name+"（"+r.kind+"／"+STATE_LABEL[r.status]+"）");
+      L.push("・"+(r.star?"★ ":"")+(booth(r)?"["+booth(r)+"] ":"")+r.name+"（"+r.kind+"／"+STATE_LABEL[r.status]+"）");
       if(r.person) L.push("　担当: "+r.person);
       if(r.product) L.push("　ブース/商品: "+r.product);
       if(r.card) L.push("　名刺: あり");
@@ -940,9 +1011,9 @@ function reportText(){
   return L.join("\n");
 }
 function csvText(){
-  var lines = [["ゾーン","出展社","区分","ステータス","優先","名刺","担当者","ブース/商品名","メモ","マップピン"].join(",")];
+  var lines = [["ゾーン","ブース番号","出展社","区分","ステータス","優先","名刺","担当者","当日メモ(ブース/商品名)","メモ","マップピン"].join(",")];
   state.rows.forEach(function(r){
-    lines.push([r.zone,r.name,r.kind,STATE_LABEL[r.status],r.star?"★":"",r.card?"○":"",r.person,r.product,r.memo,r.pin?"あり":""]
+    lines.push([r.zone,booth(r),r.name,r.kind,STATE_LABEL[r.status],r.star?"★":"",r.card?"○":"",r.person,r.product,r.memo,r.pin?"あり":""]
       .map(function(v){ return '"'+String(v).replace(/"/g,'""')+'"'; }).join(","));
   });
   if(state.note) lines.push('"全体メモ","'+state.note.replace(/"/g,'""')+'"');
