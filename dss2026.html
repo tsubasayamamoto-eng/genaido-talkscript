@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="DSS周回">
+<meta name="theme-color" content="#22346E">
+<title>DSS2026 会場周回メモ</title>
+<style>
+:root{
+  --zone-health:#0F9488; --zone-beauty:#C0447E; --zone-food:#B8761C; --zone-home:#3563C4;
+  --brand:#22346E; --brand-soft:#E7EAF5; --on-brand:#FFFFFF;
+  --ok:#2F7D64; --ok-soft:#E3F0EA;
+  --follow:#C2531C; --follow-soft:#FBEADF;
+  --skip:#8A94A6; --skip-soft:#EDEFF3;
+  --star:#D8912B;
+  --page:#F3F5F8; --card:#FFFFFF; --line:#DFE4EC;
+  --ink:#141920; --ink-2:#3F4854; --muted:#68717F;
+  --shadow:0 1px 2px rgba(20,25,32,.05), 0 6px 16px -10px rgba(20,25,32,.28);
+  --r:14px;
+  --display:"Hiragino Maru Gothic ProN", ui-rounded, -apple-system, "Hiragino Sans", sans-serif;
+  --body:-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --mono:ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --zone-health:#3FC0B2; --zone-beauty:#E77BAE; --zone-food:#D9A14A; --zone-home:#7CA2F0;
+    --brand:#A9B8EA; --brand-soft:#1E2536; --on-brand:#0D1117;
+    --ok:#5FBF9C; --ok-soft:#16281F;
+    --follow:#EE8A55; --follow-soft:#2B1B12;
+    --skip:#7E8798; --skip-soft:#1C2029;
+    --star:#E8A33D;
+    --page:#0D1117; --card:#161C26; --line:#28303D;
+    --ink:#E7ECF3; --ink-2:#BFC7D4; --muted:#8B94A5;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 20px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="light"]{
+  --zone-health:#0F9488; --zone-beauty:#C0447E; --zone-food:#B8761C; --zone-home:#3563C4;
+  --brand:#22346E; --brand-soft:#E7EAF5; --on-brand:#FFFFFF;
+  --ok:#2F7D64; --ok-soft:#E3F0EA;
+  --follow:#C2531C; --follow-soft:#FBEADF;
+  --skip:#8A94A6; --skip-soft:#EDEFF3;
+  --star:#D8912B;
+  --page:#F3F5F8; --card:#FFFFFF; --line:#DFE4EC;
+  --ink:#141920; --ink-2:#3F4854; --muted:#68717F;
+  --shadow:0 1px 2px rgba(20,25,32,.05), 0 6px 16px -10px rgba(20,25,32,.28);
+}
+:root[data-theme="dark"]{
+  --zone-health:#3FC0B2; --zone-beauty:#E77BAE; --zone-food:#D9A14A; --zone-home:#7CA2F0;
+  --brand:#A9B8EA; --brand-soft:#1E2536; --on-brand:#0D1117;
+  --ok:#5FBF9C; --ok-soft:#16281F;
+  --follow:#EE8A55; --follow-soft:#2B1B12;
+  --skip:#7E8798; --skip-soft:#1C2029;
+  --star:#E8A33D;
+  --page:#0D1117; --card:#161C26; --line:#28303D;
+  --ink:#E7ECF3; --ink-2:#BFC7D4; --muted:#8B94A5;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 20px -12px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--page); color:var(--ink); font-family:var(--body);
+  font-size:16px; line-height:1.55; -webkit-text-size-adjust:100%;
+  padding-bottom:calc(76px + env(safe-area-inset-bottom));
+}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
+[hidden]{display:none !important}
+
+/* ---- 操作デッキ ---- */
+.deck{
+  position:sticky; top:0; z-index:20; background:var(--card);
+  border-bottom:1px solid var(--line);
+  padding:calc(10px + env(safe-area-inset-top)) 14px 8px;
+  display:flex; flex-direction:column; gap:9px;
+}
+.titlebar{display:flex;align-items:baseline;gap:9px}
+.title{font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:.01em;margin:0}
+.title small{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--muted);font-weight:400}
+.count{margin-left:auto;font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.count b{color:var(--ok);font-size:15px}
+.bar{height:5px;border-radius:99px;background:var(--line);overflow:hidden;display:flex}
+.bar i{display:block;height:100%;transition:width .3s ease}
+.bar .b-ok{background:var(--ok)} .bar .b-fu{background:var(--follow)}
+
+.search{position:relative;display:flex}
+.search input{
+  width:100%;padding:10px 36px 10px 34px;border-radius:11px;border:1px solid var(--line);
+  background:var(--page);font-size:16px;
+}
+.search input::placeholder{color:var(--muted)}
+.search .ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px}
+.search .clr{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;color:var(--muted);font-size:15px}
+
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;margin:0 -14px;padding-left:14px;padding-right:14px}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:0 0 auto;padding:6px 12px;border-radius:99px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink-2);font-size:13px;font-weight:600;white-space:nowrap;
+  display:flex;align-items:center;gap:6px;
+}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.9}
+.chip .n{font-family:var(--mono);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"]{background:var(--brand-soft);border-color:transparent;color:var(--brand)}
+.chip[aria-pressed="true"] .n{color:var(--brand);opacity:.8}
+
+/* ---- リスト ---- */
+main{padding:12px 14px 0;display:flex;flex-direction:column;gap:14px}
+.group{display:flex;flex-direction:column;gap:8px}
+.ghead{
+  display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:700;
+  font-size:13px;letter-spacing:.06em;color:var(--zc);padding-left:2px;margin:0;
+}
+.ghead::after{content:"";flex:1;height:1px;background:var(--line)}
+.ghead .gn{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--muted);letter-spacing:0}
+
+.card{
+  background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);
+  border-left:4px solid var(--zc);overflow:hidden;
+}
+.card.s-done{border-left-color:var(--ok)}
+.card.s-follow{border-left-color:var(--follow)}
+.card.s-skip{opacity:.5;border-left-color:var(--skip)}
+.card.flash{animation:flash .9s ease}
+@keyframes flash{0%{box-shadow:0 0 0 3px var(--brand-soft)}100%{box-shadow:var(--shadow)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+.row{display:flex;align-items:flex-start;gap:10px;padding:12px 12px 12px 11px;width:100%;text-align:left}
+.star{flex:0 0 auto;width:34px;height:34px;margin:-4px -4px -4px 0;font-size:17px;line-height:34px;text-align:center;color:var(--line)}
+.star.on{color:var(--star)}
+.name{flex:1;min-width:0}
+.name h3{margin:0;font-size:15.5px;font-weight:650;line-height:1.35;font-family:var(--display);letter-spacing:.005em}
+.card.s-done .name h3{color:var(--ink-2)}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;align-items:center}
+.tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.03em;padding:2px 7px;border-radius:5px;background:var(--skip-soft);color:var(--muted)}
+.tag.zone{background:color-mix(in srgb, var(--zc) 13%, transparent);color:var(--zc)}
+.tag.pin{background:var(--brand-soft);color:var(--brand)}
+.state{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px}
+.state.done{background:var(--ok-soft);color:var(--ok)}
+.state.follow{background:var(--follow-soft);color:var(--follow)}
+.state.skip{background:var(--skip-soft);color:var(--skip)}
+.peek{margin:6px 0 0;font-size:12.5px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+.peek b{color:var(--ink-2);font-weight:650}
+.caret{flex:0 0 auto;align-self:center;color:var(--line);font-size:12px;transition:transform .2s}
+.card.open .caret{transform:rotate(90deg)}
+
+.panel{padding:0 12px 13px;border-top:1px dashed var(--line)}
+.panel > *{margin-top:11px}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.seg button{
+  padding:9px 2px;border-radius:10px;background:var(--page);border:1px solid var(--line);
+  font-size:12.5px;font-weight:650;color:var(--muted);
+}
+.seg button[aria-pressed="true"]{border-color:transparent}
+.seg button[data-s="none"][aria-pressed="true"]{background:var(--brand-soft);color:var(--brand)}
+.seg button[data-s="done"][aria-pressed="true"]{background:var(--ok-soft);color:var(--ok)}
+.seg button[data-s="follow"][aria-pressed="true"]{background:var(--follow-soft);color:var(--follow)}
+.seg button[data-s="skip"][aria-pressed="true"]{background:var(--skip-soft);color:var(--skip)}
+.field label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--muted);margin-bottom:4px}
+.field input,.field textarea,.field select{
+  width:100%;padding:9px 11px;border-radius:10px;border:1px solid var(--line);
+  background:var(--page);font-size:16px;resize:vertical;
+}
+.field textarea{min-height:78px;line-height:1.5}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.toggle{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:10px;background:var(--page);border:1px solid var(--line);font-size:13.5px;font-weight:600;color:var(--ink-2)}
+.toggle[aria-pressed="true"]{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
+.quick{display:flex;flex-wrap:wrap;gap:6px}
+.quick button{padding:6px 10px;border-radius:99px;border:1px dashed var(--line);font-size:12.5px;color:var(--muted)}
+.quick button.warn{color:var(--follow);border-color:color-mix(in srgb, var(--follow) 40%, transparent)}
+
+.empty{text-align:center;color:var(--muted);padding:44px 20px;font-size:14px;line-height:1.8}
+
+/* ---- マップ ---- */
+#mapTab{padding:12px 14px 0;display:flex;flex-direction:column;gap:12px}
+.maphead{display:flex;align-items:center;gap:8px}
+.maphead h2{font-family:var(--display);font-size:16px;margin:0}
+.maphead .tools{margin-left:auto;display:flex;gap:6px}
+.tbtn{padding:7px 11px;border-radius:9px;background:var(--card);border:1px solid var(--line);font-size:12.5px;font-weight:650;color:var(--ink-2)}
+.tbtn.on{background:var(--brand);border-color:transparent;color:var(--on-brand)}
+.stage{
+  position:relative;overflow:hidden;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r);height:56vh;min-height:300px;touch-action:none;
+}
+.stage.placing{outline:2px solid var(--brand);outline-offset:-2px}
+.inner{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
+.inner img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
+.pin{
+  position:absolute;transform:translate(-50%,-100%);transform-origin:50% 100%;
+  display:flex;flex-direction:column;align-items:center;gap:0;
+}
+.pin .bub{
+  max-width:120px;padding:3px 7px;border-radius:7px;font-size:10.5px;font-weight:700;line-height:1.3;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff;background:var(--pc);
+  box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+.pin .tip{width:2px;height:9px;background:var(--pc)}
+.pin .dot{width:11px;height:11px;border-radius:50%;background:var(--pc);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);margin-top:-1px}
+.pin.p-none{--pc:var(--brand)} .pin.p-done{--pc:var(--ok)} .pin.p-follow{--pc:var(--follow)} .pin.p-skip{--pc:var(--skip)}
+.pin.starred .bub::before{content:"★ ";color:#FFE08A}
+.zoombar{position:absolute;right:9px;bottom:9px;display:flex;flex-direction:column;gap:5px}
+.zoombar button{width:34px;height:34px;border-radius:9px;background:color-mix(in srgb, var(--card) 88%, transparent);
+  border:1px solid var(--line);font-size:15px;font-weight:700;color:var(--ink-2);backdrop-filter:blur(6px)}
+.hint{padding:9px 12px;border-radius:10px;background:var(--brand-soft);color:var(--brand);font-size:13px;font-weight:650}
+.mapempty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  height:100%;padding:26px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.8;
+}
+.mapempty button{padding:11px 18px;border-radius:11px;background:var(--brand);color:var(--on-brand);font-weight:700;font-size:14px}
+.want{display:flex;flex-direction:column;gap:7px;padding-bottom:8px}
+.want h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--muted);margin:4px 0 0;font-weight:400}
+.wrow{
+  display:flex;align-items:center;gap:9px;padding:10px 11px;background:var(--card);border-radius:11px;
+  box-shadow:var(--shadow);border-left:4px solid var(--zc);text-align:left;width:100%;
+}
+.wrow .wn{flex:1;min-width:0}
+.wrow .wn strong{display:block;font-size:14px;font-weight:650;font-family:var(--display);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wrow .wn span{font-size:11.5px;color:var(--muted)}
+.wrow .go{flex:0 0 auto;font-size:11px;font-weight:700;color:var(--brand);background:var(--brand-soft);padding:4px 9px;border-radius:99px}
+.wrow .go.off{color:var(--muted);background:var(--skip-soft)}
+
+/* ---- 下部タブ / FAB ---- */
+.dock{
+  position:fixed;left:0;right:0;bottom:0;z-index:30;background:color-mix(in srgb, var(--card) 92%, transparent);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom));display:flex;
+}
+.dock button{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px 4px;
+  font-size:10.5px;font-weight:700;color:var(--muted);border-radius:10px;
+}
+.dock button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.dock button[aria-selected="true"]{color:var(--brand)}
+.fab{
+  position:fixed;right:16px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:31;
+  width:54px;height:54px;border-radius:50%;background:var(--brand);color:var(--on-brand);
+  font-size:26px;font-weight:400;line-height:1;box-shadow:0 6px 18px -6px rgba(20,25,32,.5);
+}
+.saved{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(88px + env(safe-area-inset-bottom));z-index:40;
+  background:var(--ink);color:var(--page);font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:99px;
+  opacity:0;transition:opacity .25s;pointer-events:none;box-shadow:var(--shadow);max-width:86vw;text-align:center}
+.saved.show{opacity:.95}
+
+/* ---- シート ---- */
+.sheet{position:fixed;inset:0;z-index:50;display:none}
+.sheet.open{display:block}
+.sheet .scrim{position:absolute;inset:0;background:rgba(8,11,16,.45)}
+.sheet .body{
+  position:absolute;left:0;right:0;bottom:0;max-height:88vh;overflow:auto;
+  background:var(--card);border-radius:20px 20px 0 0;padding:8px 16px calc(20px + env(safe-area-inset-bottom));
+  box-shadow:0 -8px 40px rgba(8,11,16,.3);
+}
+.grab{width:38px;height:4px;border-radius:99px;background:var(--line);margin:0 auto 12px}
+.sheet h2{font-family:var(--display);font-size:16px;margin:0 0 4px}
+.sheet .lead{font-size:12.5px;color:var(--muted);margin:0 0 12px}
+.sheet h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--muted);margin:18px 0 7px;font-weight:400}
+.acts{display:flex;flex-direction:column;gap:8px}
+.acts button{padding:13px 14px;border-radius:12px;background:var(--page);border:1px solid var(--line);
+  text-align:left;font-size:14.5px;font-weight:650;display:flex;align-items:center;gap:10px}
+.acts button .sub{margin-left:auto;font-size:11.5px;font-weight:400;color:var(--muted)}
+.acts button.danger{color:var(--follow)}
+.acts button.go{justify-content:center;background:var(--brand);color:var(--on-brand);border-color:transparent}
+.out{width:100%;min-height:190px;padding:11px;border-radius:12px;border:1px solid var(--line);
+  background:var(--page);font-family:var(--mono);font-size:12px;line-height:1.6;white-space:pre;overflow:auto}
+.picklist{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow:auto;margin-top:10px}
+.picklist button{padding:11px 12px;border-radius:10px;background:var(--page);border:1px solid var(--line);text-align:left;font-size:14px}
+.picklist button span{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+</style>
+</head>
+<body>
+
+<header class="deck" id="deck">
+  <div class="titlebar">
+    <h1 class="title">会場周回メモ <small>DSS2026</small></h1>
+    <div class="count" id="count"></div>
+  </div>
+  <div class="bar"><i class="b-ok" id="barOk" style="width:0"></i><i class="b-fu" id="barFu" style="width:0"></i></div>
+  <div class="search">
+    <span class="ico">⌕</span>
+    <input id="q" type="search" placeholder="社名・商品名・メモを検索" autocomplete="off" autocapitalize="off">
+    <button class="clr" id="qclr" hidden aria-label="検索を消す">✕</button>
+  </div>
+  <div class="chips" id="zoneChips"></div>
+  <div class="chips" id="stateChips"></div>
+</header>
+
+<main id="list"></main>
+
+<section id="mapTab" hidden>
+  <div class="maphead">
+    <h2>会場マップ</h2>
+    <div class="tools" id="mapTools" hidden>
+      <button class="tbtn" id="btnPin">ピンを置く</button>
+      <button class="tbtn" id="btnMapSwap">画像</button>
+    </div>
+  </div>
+  <p class="hint" id="pinHint" hidden>行きたい会社を選んで、マップ上の場所をタップしてください</p>
+  <div class="stage" id="stage">
+    <div class="inner" id="inner" hidden><img id="mapImg" alt="会場マップ"><div id="pins"></div></div>
+    <div class="mapempty" id="mapEmpty">
+      <p>会場マップの画像を読み込むと、会社のピンを立てて<br>行きたい場所がひと目で分かるようになります。</p>
+      <button id="btnMapLoad">マップ画像を読み込む</button>
+      <p style="font-size:12px">公式マップPDFのスクリーンショットでOKです</p>
+    </div>
+    <div class="zoombar" id="zoomBar" hidden>
+      <button data-z="in" aria-label="拡大">＋</button>
+      <button data-z="out" aria-label="縮小">−</button>
+      <button data-z="fit" aria-label="全体表示" style="font-size:11px">全体</button>
+    </div>
+  </div>
+  <div class="want" id="want"></div>
+</section>
+
+<nav class="dock">
+  <button data-tab="list" aria-selected="true">
+    <svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>リスト</button>
+  <button data-tab="map" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M12 21s6.5-5.9 6.5-10.5a6.5 6.5 0 1 0-13 0C5.5 15.1 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.4"/></svg>マップ</button>
+  <button id="btnOut" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M12 15V4M8.5 7.5 12 4l3.5 3.5M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></svg>書き出し</button>
+</nav>
+<button class="fab" id="btnAdd" aria-label="当日みつけた会社を追加">＋</button>
+
+<div class="saved" id="toast">保存しました</div>
+
+<div class="sheet" id="sheet">
+  <div class="scrim" data-close></div>
+  <div class="body"><div class="grab"></div><div id="sheetContent"></div></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ========== 出展社データ（事前リサーチ ⑦取引窓口候補 卸・商社） ========== */
+var SEED = [
+  ["ヘルスケア","アルフレッサ ヘルスケア株式会社","卸"],
+  ["ヘルスケア","SB C&S株式会社","流通"],
+  ["ヘルスケア","大木ヘルスケアホールディングス株式会社","卸"],
+  ["ヘルスケア","CBC株式会社","商社/化学"],
+  ["ヘルスケア","株式会社新菱","要確認(B2B)"],
+  ["ヘルスケア","スギホールディングス株式会社","小売"],
+  ["ヘルスケア","株式会社ツルハホールディングス","小売"],
+  ["ヘルスケア","日本一般用医薬品連合会","団体"],
+  ["ヘルスケア","日本家庭薬協会","団体"],
+  ["ヘルスケア","ユニテックフーズ株式会社","食品素材B2B"],
+  ["ヘルスケア","株式会社ROKI","要確認(B2B)"],
+  ["ヘルスケア","Atex Co.,Ltd.","海外OEM"],
+  ["ヘルスケア","Chan Guare Industry Co., Ltd","海外OEM"],
+  ["ヘルスケア","Jiangsu Chenjie Daily Chemical Products Co., Ltd.","海外OEM"],
+  ["ヘルスケア","Shanghai Warmyou Industry Co.,Ltd.","海外OEM"],
+  ["ヘルスケア","Weihai Jieshi Commodity Manufacture Co., Ltd","海外OEM"],
+  ["ビューティケア","株式会社あらた","卸"],
+  ["ビューティケア","伊藤忠リーテイルリンク株式会社","卸/流通"],
+  ["ビューティケア","クロスプラス株式会社","アパレル卸"],
+  ["ビューティケア","株式会社PALTAC","卸"],
+  ["ビューティケア","株式会社フジシールインターナショナル","包材"],
+  ["ビューティケア","株式会社マツキヨココカラ＆カンパニー","小売"],
+  ["ビューティケア","Bloomingventure co.,Ltd.","海外"],
+  ["ビューティケア","EBIN KOREA","海外"],
+  ["ビューティケア","Firstmarket Co.,Ltd.","海外"],
+  ["食と健康","加藤産業株式会社","卸"],
+  ["食と健康","株式会社日本アクセス","卸"],
+  ["食と健康","日本酒類販売株式会社","卸"],
+  ["食と健康","公益財団法人日本ヘルスケア協会","団体"],
+  ["食と健康","株式会社山星屋","菓子卸"],
+  ["ホームケア","中央物産株式会社","卸"],
+  ["ホームケア","Dragon Boat Industry Japan株式会社","海外"],
+  ["ホームケア","丸紅フォレストリンクス株式会社","商社"],
+  ["ホームケア","Dalian Oupai Technology Co., Ltd.","海外"],
+  ["ホームケア","Jieyang Top-Tip's Daily Use Products Co.,Ltd.","海外"],
+  ["ホームケア","Safetec Co., Ltd.","海外"],
+  ["ホームケア","Shanghai Chuangshi Medical Technology Group","海外"]
+];
+var ADDED = "当日追加";
+var ZONES = ["ヘルスケア","ビューティケア","食と健康","ホームケア"];
+var GROUPS = ZONES.concat([ADDED]);
+var ZONE_VAR = {"ヘルスケア":"--zone-health","ビューティケア":"--zone-beauty","食と健康":"--zone-food","ホームケア":"--zone-home"};
+ZONE_VAR[ADDED] = "--brand";
+var STATES = [{k:"none",label:"未訪問"},{k:"done",label:"訪問済"},{k:"follow",label:"要フォロー"},{k:"skip",label:"見送り"}];
+var STATE_LABEL = {none:"未訪問",done:"訪問済",follow:"要フォロー",skip:"見送り"};
+var QUICK = ["カタログ受領","名刺交換のみ","担当者不在","条件は後日メール","小ロット可","取引口座の説明あり","再訪する"];
+
+/* ========== 保存 ========== */
+var KEY = "dss2026-walk-v1", MAPKEY = "dss2026-map-v1";
+var storageOK = true;
+var state = load();
+var mapSrc = readMap();
+
+function newRow(zone,name,kind,custom){
+  return {id:"", zone:zone, name:name, kind:kind, custom:!!custom,
+          status:"none", star:false, memo:"", person:"", product:"", card:false, pin:null};
+}
+function blank(){
+  var rows = SEED.map(function(r,i){ var o=newRow(r[0],r[1],r[2],false); o.id="s"+i; return o; });
+  return {rows:rows, note:""};
+}
+function load(){
+  var base = blank();
+  try{
+    var raw = localStorage.getItem(KEY);
+    if(!raw) return base;
+    var d = JSON.parse(raw), byId = {};
+    (d.rows||[]).forEach(function(r){ byId[r.id]=r; });
+    base.rows.forEach(function(r){ merge(r, byId[r.id]); });
+    (d.rows||[]).forEach(function(r){
+      if(!r.custom) return;
+      var o = newRow(ADDED, r.name, r.kind||ADDED, true);
+      o.id = r.id; merge(o, r); o.zone = ADDED;
+      base.rows.push(o);
+    });
+    base.note = d.note || "";
+  }catch(e){}
+  return base;
+}
+function merge(r,s){
+  if(!s) return;
+  r.status=s.status||"none"; r.star=!!s.star; r.memo=s.memo||"";
+  r.person=s.person||""; r.product=s.product||""; r.card=!!s.card;
+  r.pin = (s.pin && typeof s.pin.x==="number") ? {x:s.pin.x,y:s.pin.y} : null;
+}
+var saveTimer=null;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){
+    try{ localStorage.setItem(KEY, JSON.stringify({rows:state.rows, note:state.note})); }
+    catch(e){
+      if(storageOK){ storageOK=false; toast("この端末では自動保存できません。書き出しで残してください"); }
+    }
+  }, 250);
+}
+function readMap(){ try{ return localStorage.getItem(MAPKEY) || ""; }catch(e){ return ""; } }
+function writeMap(src){
+  try{ if(src) localStorage.setItem(MAPKEY, src); else localStorage.removeItem(MAPKEY); return true; }
+  catch(e){ toast("マップ画像を保存できませんでした（容量不足）"); return false; }
+}
+var toastTimer=null;
+function toast(msg){
+  var t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){ t.classList.remove("show"); }, 1900);
+}
+
+/* ========== 共通 ========== */
+var $ = function(s){ return document.querySelector(s); };
+var listEl = $("#list"), openIds = {}, tab = "list";
+var filterZone = "all", filterState = "all", query = "";
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+function byId(id){ for(var i=0;i<state.rows.length;i++) if(state.rows[i].id===id) return state.rows[i]; return null; }
+function groupsOf(rows){
+  var order = GROUPS.slice();
+  rows.forEach(function(r){ if(order.indexOf(r.zone)<0) order.push(r.zone); });
+  return order;
+}
+
+/* ========== リスト描画 ========== */
+function visible(){
+  var q = query.trim().toLowerCase();
+  return state.rows.filter(function(r){
+    if(filterZone!=="all" && r.zone!==filterZone) return false;
+    if(filterState==="star"){ if(!r.star) return false; }
+    else if(filterState!=="all" && r.status!==filterState) return false;
+    if(q){
+      var hay = (r.name+" "+r.kind+" "+r.zone+" "+r.memo+" "+r.person+" "+r.product).toLowerCase();
+      if(hay.indexOf(q)<0) return false;
+    }
+    return true;
+  });
+}
+function chipHtml(v,label,n,on,style,dot){
+  return '<button class="chip" data-v="'+esc(v)+'" aria-pressed="'+(on?"true":"false")+'" style="'+style+'">'+
+         (dot?'<span class="dot"></span>':'')+'<span>'+esc(label)+'</span><span class="n">'+n+'</span></button>';
+}
+function renderChips(){
+  var zHtml = chipHtml("all","すべて",state.rows.length,filterZone==="all","");
+  groupsOf(state.rows).forEach(function(z){
+    var n = state.rows.filter(function(r){return r.zone===z;}).length;
+    if(!n) return;
+    zHtml += chipHtml(z, z, n, filterZone===z, "color:var("+(ZONE_VAR[z]||"--brand")+")", true);
+  });
+  $("#zoneChips").innerHTML = zHtml;
+
+  var sHtml = chipHtml("all","全件",state.rows.length,filterState==="all","");
+  STATES.forEach(function(s){
+    var n = state.rows.filter(function(r){return r.status===s.k;}).length;
+    sHtml += chipHtml(s.k, s.label, n, filterState===s.k, "");
+  });
+  sHtml += chipHtml("star","★ 優先", state.rows.filter(function(r){return r.star;}).length, filterState==="star","");
+  $("#stateChips").innerHTML = sHtml;
+}
+function renderHead(){
+  var total = state.rows.filter(function(r){return r.status!=="skip";}).length || 1;
+  var done = state.rows.filter(function(r){return r.status==="done";}).length;
+  var fu = state.rows.filter(function(r){return r.status==="follow";}).length;
+  $("#count").innerHTML = '<b>'+done+'</b> / '+total+' 社';
+  $("#barOk").style.width = (done/total*100)+"%";
+  $("#barFu").style.width = (fu/total*100)+"%";
+}
+function render(){
+  renderHead(); renderChips();
+  var rows = visible();
+  if(!rows.length){
+    listEl.innerHTML = '<p class="empty">該当する出展社がありません。<br>検索や絞り込みを外してみてください。</p>';
+    return;
+  }
+  var html = "";
+  groupsOf(rows).forEach(function(z){
+    var g = rows.filter(function(r){return r.zone===z;});
+    if(!g.length) return;
+    g.sort(function(a,b){ return (b.star?1:0)-(a.star?1:0); });
+    html += '<section class="group" style="--zc:var('+(ZONE_VAR[z]||"--brand")+')">'+
+            '<h2 class="ghead">'+esc(z)+' <span class="gn">'+g.length+'</span></h2>'+
+            g.map(cardHtml).join("")+'</section>';
+  });
+  listEl.innerHTML = html;
+}
+function cardHtml(r){
+  var open = !!openIds[r.id];
+  var badge = r.status==="none" ? "" : '<span class="state '+r.status+'">'+STATE_LABEL[r.status]+'</span>';
+  var extra = "";
+  if(!open){
+    if(r.person) extra += '<span class="tag">担当 '+esc(r.person)+'</span>';
+    if(r.card) extra += '<span class="tag">名刺✓</span>';
+    if(r.pin) extra += '<span class="tag pin">マップ済</span>';
+  }
+  var peek = "";
+  if(!open && (r.product || r.memo)){
+    peek = '<p class="peek">'+(r.product?'<b>'+esc(r.product)+'</b>'+(r.memo?" — ":""):"")+esc(r.memo||"")+'</p>';
+  }
+  return '<article class="card s-'+r.status+(open?" open":"")+'" data-id="'+r.id+'">'+
+    '<div class="row">'+
+      '<button class="star'+(r.star?" on":"")+'" data-act="star" aria-label="優先" aria-pressed="'+(r.star?"true":"false")+'">'+(r.star?"★":"☆")+'</button>'+
+      '<div class="name" data-act="toggle">'+
+        '<h3>'+esc(r.name)+'</h3>'+
+        '<div class="meta"><span class="tag zone">'+esc(r.kind)+'</span>'+badge+extra+'</div>'+
+        peek+
+      '</div>'+
+      '<span class="caret" data-act="toggle">▶</span>'+
+    '</div>'+
+    (open ? panelHtml(r) : "")+
+  '</article>';
+}
+function panelHtml(r){
+  var seg = STATES.map(function(s){
+    return '<button data-act="status" data-s="'+s.k+'" aria-pressed="'+(r.status===s.k?"true":"false")+'">'+s.label+'</button>';
+  }).join("");
+  var quick = QUICK.map(function(t){ return '<button data-act="quick" data-t="'+esc(t)+'">+ '+esc(t)+'</button>'; }).join("");
+  return '<div class="panel">'+
+    '<div class="seg">'+seg+'</div>'+
+    '<div class="pair">'+
+      '<div class="field"><label>担当者</label><input data-act="person" type="text" value="'+esc(r.person)+'" placeholder="営業部 田中様"></div>'+
+      '<div class="field"><label>ブース・商品名</label><input data-act="product" type="text" value="'+esc(r.product)+'" placeholder="A-12 / ◯◯シリーズ"></div>'+
+    '</div>'+
+    '<button class="toggle" data-act="card" aria-pressed="'+(r.card?"true":"false")+'">'+(r.card?"✓ ":"")+'名刺をもらった</button>'+
+    '<div class="field"><label>メモ</label><textarea data-act="memo" placeholder="取引条件・最低ロット・次アクションなど">'+esc(r.memo)+'</textarea></div>'+
+    '<div class="quick">'+quick+'</div>'+
+    '<div class="quick">'+
+      '<button data-act="pinhere">'+(r.pin?"マップの位置を変更":"マップにピンを置く")+'</button>'+
+      (r.pin?'<button data-act="unpin">ピンを外す</button>':'')+
+      (r.custom?'<button data-act="del" class="warn">この会社を削除</button>':'')+
+    '</div>'+
+  '</div>';
+}
+function repaintCard(id){
+  var r = byId(id), el = listEl.querySelector('.card[data-id="'+id+'"]');
+  if(!r || !el){ render(); return; }
+  var focused = document.activeElement;
+  var keep = focused && el.contains(focused) ? focused.getAttribute("data-act") : null;
+  var pos = keep ? focused.selectionStart : 0;
+  el.outerHTML = cardHtml(r);
+  if(keep){
+    var again = listEl.querySelector('.card[data-id="'+id+'"] [data-act="'+keep+'"]');
+    if(again && again.focus){ again.focus(); try{ again.setSelectionRange(pos,pos); }catch(e){} }
+  }
+  renderHead(); renderChips();
+}
+
+/* ========== リスト操作 ========== */
+listEl.addEventListener("click", function(e){
+  var btn = e.target.closest("[data-act]"); if(!btn) return;
+  var cardEl = e.target.closest(".card"); if(!cardEl) return;
+  var id = cardEl.getAttribute("data-id"), r = byId(id); if(!r) return;
+  var act = btn.getAttribute("data-act");
+
+  if(act==="toggle"){ openIds[id] = !openIds[id]; repaintCard(id); }
+  else if(act==="star"){ r.star = !r.star; save(); repaintCard(id); }
+  else if(act==="status"){
+    var s = btn.getAttribute("data-s");
+    r.status = (r.status===s && s!=="none") ? "none" : s;
+    save(); repaintCard(id);
+  }
+  else if(act==="card"){ r.card = !r.card; save(); repaintCard(id); }
+  else if(act==="quick"){
+    var t = btn.getAttribute("data-t");
+    r.memo = r.memo ? (r.memo.replace(/\s*$/,"") + "\n" + t) : t;
+    if(r.status==="none") r.status="done";
+    save(); repaintCard(id);
+  }
+  else if(act==="pinhere"){ startPinning(id); }
+  else if(act==="unpin"){ r.pin=null; save(); repaintCard(id); renderPins(); renderWant(); toast("ピンを外しました"); }
+  else if(act==="del"){
+    if(confirm(r.name+" を削除します。よろしいですか？")){
+      state.rows = state.rows.filter(function(x){return x.id!==id;});
+      delete openIds[id]; save(); render(); renderPins(); renderWant();
+    }
+  }
+});
+listEl.addEventListener("input", function(e){
+  var f = e.target.closest("[data-act]"); if(!f) return;
+  var act = f.getAttribute("data-act");
+  if(act!=="memo" && act!=="person" && act!=="product") return;
+  var r = byId(e.target.closest(".card").getAttribute("data-id")); if(!r) return;
+  r[act==="memo"?"memo":act] = f.value;
+  save();
+});
+$("#q").addEventListener("input", function(e){
+  query = e.target.value; $("#qclr").hidden = !query; render();
+});
+$("#qclr").addEventListener("click", function(){ query=""; $("#q").value=""; $("#qclr").hidden=true; render(); });
+$("#zoneChips").addEventListener("click", function(e){
+  var c = e.target.closest(".chip"); if(!c) return;
+  filterZone = c.getAttribute("data-v"); render(); window.scrollTo({top:0,behavior:"smooth"});
+});
+$("#stateChips").addEventListener("click", function(e){
+  var c = e.target.closest(".chip"); if(!c) return;
+  filterState = c.getAttribute("data-v"); render(); window.scrollTo({top:0,behavior:"smooth"});
+});
+
+/* ========== タブ ========== */
+function setTab(t){
+  tab = t;
+  document.querySelectorAll('.dock [data-tab]').forEach(function(b){
+    b.setAttribute("aria-selected", b.getAttribute("data-tab")===t ? "true":"false");
+  });
+  $("#deck").hidden = (t!=="list");
+  listEl.hidden = (t!=="list");
+  $("#mapTab").hidden = (t!=="map");
+  $("#btnAdd").hidden = (t!=="list");
+  if(t==="map"){ renderPins(); renderWant(); requestAnimationFrame(fit); }
+  window.scrollTo(0,0);
+}
+document.querySelector(".dock").addEventListener("click", function(e){
+  var b = e.target.closest("[data-tab]"); if(!b) return;
+  setTab(b.getAttribute("data-tab"));
+});
+function jumpTo(id){
+  setTab("list");
+  filterZone="all"; filterState="all"; query=""; $("#q").value=""; $("#qclr").hidden=true;
+  openIds[id]=true; render();
+  var el = listEl.querySelector('.card[data-id="'+id+'"]');
+  if(el){ el.scrollIntoView({behavior:"smooth",block:"center"}); el.classList.add("flash"); }
+}
+
+/* ========== 当日追加 ========== */
+$("#btnAdd").addEventListener("click", function(){
+  openSheet('<h2>当日みつけた会社を追加</h2>'+
+    '<p class="lead">社名だけでも登録できます。あとから追記できます。</p>'+
+    '<div class="field"><label>社名</label><input id="aName" type="text" placeholder="株式会社◯◯"></div>'+
+    '<div class="pair" style="margin-top:10px">'+
+      '<div class="field"><label>担当者</label><input id="aPerson" type="text" placeholder="営業部 田中様"></div>'+
+      '<div class="field"><label>ブース・商品名</label><input id="aProduct" type="text" placeholder="A-12 / ◯◯シリーズ"></div>'+
+    '</div>'+
+    '<div class="field" style="margin-top:10px"><label>メモ</label><textarea id="aMemo" placeholder="話した内容・取引条件・次アクション"></textarea></div>'+
+    '<div class="acts" style="margin-top:16px"><button class="go" id="aGo">追加する</button></div>');
+  setTimeout(function(){ var n=document.getElementById("aName"); if(n) n.focus(); }, 250);
+  document.getElementById("aGo").addEventListener("click", function(){
+    var n = document.getElementById("aName").value.trim();
+    if(!n){ toast("社名を入力してください"); document.getElementById("aName").focus(); return; }
+    var r = newRow(ADDED, n, ADDED, true);
+    r.id = "c" + Date.now() + Math.floor(Math.random()*1000);
+    r.person  = document.getElementById("aPerson").value.trim();
+    r.product = document.getElementById("aProduct").value.trim();
+    r.memo    = document.getElementById("aMemo").value.trim();
+    r.status  = "done";
+    state.rows.push(r); openIds[r.id]=true; save(); closeSheet();
+    jumpTo(r.id); toast(n+" を追加しました");
+  });
+});
+
+/* ========== マップ ========== */
+var stage=$("#stage"), inner=$("#inner"), img=$("#mapImg"), pinsEl=$("#pins");
+var k=1, tx=0, ty=0, minK=1, placingId=null;
+
+function applyMap(){
+  var has = !!mapSrc;
+  $("#mapEmpty").hidden = has;
+  inner.hidden = !has;
+  $("#zoomBar").hidden = !has;
+  $("#mapTools").hidden = !has;
+  if(has && img.getAttribute("src")!==mapSrc) img.src = mapSrc;
+}
+function fit(){
+  if(!mapSrc || !img.naturalWidth) return;
+  var sw = stage.clientWidth;
+  var ratio = img.naturalHeight / img.naturalWidth;
+  inner.style.width = sw + "px";
+  var ih = sw * ratio;
+  // 画像がまるごと入るなら、余白が出ないよう枠の高さを画像に合わせる
+  stage.style.height = Math.max(220, Math.min(ih, window.innerHeight*0.62)) + "px";
+  var sh = stage.clientHeight;
+  minK = Math.min(1, sh/ih);
+  k = minK; tx = 0; ty = Math.max(0, (sh - ih*k)/2);
+  clampAndDraw();
+}
+function clampAndDraw(){
+  var sw = stage.clientWidth, sh = stage.clientHeight;
+  var w = inner.offsetWidth * k, h = inner.offsetHeight * k;
+  tx = w <= sw ? (sw - w)/2 : Math.min(0, Math.max(sw - w, tx));
+  ty = h <= sh ? (sh - h)/2 : Math.min(0, Math.max(sh - h, ty));
+  inner.style.transform = "translate("+tx+"px,"+ty+"px) scale("+k+")";
+  pinsEl.style.setProperty("--inv", (1/k));
+  Array.prototype.forEach.call(pinsEl.children, function(p){
+    p.style.transform = "translate(-50%,-100%) scale("+(1/k)+")";
+  });
+}
+img.addEventListener("load", fit);
+window.addEventListener("resize", function(){ if(tab==="map") fit(); });
+
+function zoomAt(nk, cx, cy){
+  nk = Math.max(minK, Math.min(6, nk));
+  var rect = stage.getBoundingClientRect();
+  var px = (cx - rect.left - tx)/k, py = (cy - rect.top - ty)/k;
+  tx = cx - rect.left - px*nk; ty = cy - rect.top - py*nk; k = nk;
+  clampAndDraw();
+}
+$("#zoomBar").addEventListener("click", function(e){
+  var b = e.target.closest("[data-z]"); if(!b) return;
+  var r = stage.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2;
+  var z = b.getAttribute("data-z");
+  if(z==="in") zoomAt(k*1.5, cx, cy);
+  else if(z==="out") zoomAt(k/1.5, cx, cy);
+  else fit();
+});
+
+var pts = {}, last = null, moved = 0;
+function pointsList(){ var a=[]; for(var id in pts) a.push(pts[id]); return a; }
+stage.addEventListener("pointerdown", function(e){
+  if(!mapSrc) return;
+  stage.setPointerCapture(e.pointerId);
+  pts[e.pointerId] = {x:e.clientX, y:e.clientY};
+  last = null; moved = 0;
+});
+stage.addEventListener("pointermove", function(e){
+  if(!pts[e.pointerId]) return;
+  var prev = pts[e.pointerId];
+  pts[e.pointerId] = {x:e.clientX, y:e.clientY};
+  var list = pointsList();
+  if(list.length===1){
+    var dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+    moved += Math.abs(dx)+Math.abs(dy);
+    tx += dx; ty += dy; clampAndDraw();
+  } else if(list.length>=2){
+    var a=list[0], b=list[1];
+    var dist = Math.hypot(a.x-b.x, a.y-b.y);
+    var mid = {x:(a.x+b.x)/2, y:(a.y+b.y)/2};
+    if(last){ zoomAt(k * (dist/last.dist), mid.x, mid.y); moved += 20; }
+    last = {dist:dist, mid:mid};
+  }
+});
+function endPointer(e){
+  delete pts[e.pointerId];
+  if(!pointsList().length) last = null;
+}
+stage.addEventListener("pointerup", endPointer);
+stage.addEventListener("pointercancel", endPointer);
+
+stage.addEventListener("click", function(e){
+  if(!mapSrc || moved > 8) return;
+  if(e.target.closest(".zoombar")) return;
+  var pinEl = e.target.closest(".pin");
+  if(pinEl && !placingId){ jumpTo(pinEl.getAttribute("data-id")); return; }
+  if(placingId){
+    var rect = inner.getBoundingClientRect();
+    var fx = (e.clientX - rect.left)/rect.width, fy = (e.clientY - rect.top)/rect.height;
+    if(fx<0||fx>1||fy<0||fy>1) return;
+    var r = byId(placingId);
+    if(r){ r.pin = {x:fx, y:fy}; save(); toast(r.name+" のピンを置きました"); }
+    stopPinning(); renderPins(); renderWant();
+  }
+});
+
+function startPinning(id){
+  var r = byId(id); if(!r) return;
+  if(!mapSrc){ setTab("map"); toast("先にマップ画像を読み込んでください"); return; }
+  placingId = id; setTab("map");
+  stage.classList.add("placing");
+  $("#pinHint").hidden = false;
+  $("#pinHint").textContent = "「"+r.name+"」の場所をマップ上でタップしてください";
+  $("#btnPin").classList.add("on"); $("#btnPin").textContent = "キャンセル";
+}
+function stopPinning(){
+  placingId = null;
+  stage.classList.remove("placing");
+  $("#pinHint").hidden = true;
+  $("#btnPin").classList.remove("on"); $("#btnPin").textContent = "ピンを置く";
+}
+$("#btnPin").addEventListener("click", function(){
+  if(placingId){ stopPinning(); return; }
+  var rows = state.rows.slice().sort(function(a,b){ return (b.star?1:0)-(a.star?1:0); });
+  openSheet('<h2>どの会社のピンを置きますか</h2>'+
+    '<p class="lead">選んだあと、マップ上の場所をタップします。</p>'+
+    '<div class="field"><input id="pq" type="search" placeholder="社名で絞り込み" autocomplete="off"></div>'+
+    '<div class="picklist" id="pl"></div>');
+  var draw = function(f){
+    document.getElementById("pl").innerHTML = rows.filter(function(r){
+      return !f || r.name.toLowerCase().indexOf(f.toLowerCase())>=0;
+    }).slice(0,60).map(function(r){
+      return '<button data-id="'+r.id+'">'+(r.star?"★ ":"")+esc(r.name)+
+             '<span>'+esc(r.zone)+' ／ '+esc(r.kind)+(r.pin?' ／ ピン設定済み':'')+'</span></button>';
+    }).join("") || '<p class="empty">見つかりません</p>';
+  };
+  draw("");
+  document.getElementById("pq").addEventListener("input", function(e){ draw(e.target.value); });
+  document.getElementById("pl").addEventListener("click", function(e){
+    var b = e.target.closest("[data-id]"); if(!b) return;
+    closeSheet(); startPinning(b.getAttribute("data-id"));
+  });
+});
+
+function renderPins(){
+  if(!mapSrc){ pinsEl.innerHTML=""; return; }
+  pinsEl.innerHTML = state.rows.filter(function(r){return r.pin;}).map(function(r){
+    return '<div class="pin p-'+r.status+(r.star?" starred":"")+'" data-id="'+r.id+'" '+
+           'style="left:'+(r.pin.x*100)+'%;top:'+(r.pin.y*100)+'%">'+
+           '<span class="bub">'+esc(r.name)+'</span><span class="tip"></span><span class="dot"></span></div>';
+  }).join("");
+  clampAndDraw();
+}
+function centerOn(r){
+  if(!r.pin || !mapSrc) return;
+  setTab("map");
+  requestAnimationFrame(function(){
+    k = Math.max(2, minK*2.2);
+    var sw = stage.clientWidth, sh = stage.clientHeight;
+    tx = sw/2 - r.pin.x * inner.offsetWidth * k;
+    ty = sh/2 - r.pin.y * inner.offsetHeight * k;
+    clampAndDraw();
+  });
+}
+function renderWant(){
+  var want = state.rows.filter(function(r){ return r.star || r.status==="follow"; });
+  var rest = state.rows.filter(function(r){ return !r.star && r.status==="none" && r.pin; });
+  var html = "";
+  if(want.length){
+    html += '<h3>行きたい（★優先・要フォロー）</h3>' + want.map(wrow).join("");
+  }
+  if(rest.length){
+    html += '<h3>ピンを置いた未訪問</h3>' + rest.map(wrow).join("");
+  }
+  if(!html){
+    html = '<h3>行きたいリスト</h3><p class="empty" style="padding:22px 10px">'+
+           'リストで★を付けた会社と「要フォロー」がここに並びます。<br>ピンを置くと地図の位置へ一発で飛べます。</p>';
+  }
+  $("#want").innerHTML = html;
+}
+function wrow(r){
+  return '<button class="wrow" data-id="'+r.id+'" style="--zc:var('+(ZONE_VAR[r.zone]||"--brand")+')">'+
+    '<span class="wn"><strong>'+(r.star?"★ ":"")+esc(r.name)+'</strong>'+
+    '<span>'+esc(r.zone)+(r.product?' ／ '+esc(r.product):'')+(r.status!=="none"?' ／ '+STATE_LABEL[r.status]:'')+'</span></span>'+
+    '<span class="go'+(r.pin?"":" off")+'">'+(r.pin?"地図で見る":"リストへ")+'</span></button>';
+}
+$("#want").addEventListener("click", function(e){
+  var b = e.target.closest("[data-id]"); if(!b) return;
+  var r = byId(b.getAttribute("data-id")); if(!r) return;
+  if(r.pin) centerOn(r); else jumpTo(r.id);
+});
+
+/* ---- マップ画像の読み込み ---- */
+function pickMap(){
+  var inp = document.createElement("input");
+  inp.type="file"; inp.accept="image/*";
+  inp.addEventListener("change", function(){
+    var f = inp.files && inp.files[0]; if(!f) return;
+    toast("マップを読み込んでいます…");
+    var fr = new FileReader();
+    fr.onload = function(){
+      var im = new Image();
+      im.onload = function(){
+        var max = 2200, s = Math.min(1, max/Math.max(im.width, im.height));
+        var c = document.createElement("canvas");
+        c.width = Math.round(im.width*s); c.height = Math.round(im.height*s);
+        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+        var data = c.toDataURL("image/jpeg", 0.72);
+        if(writeMap(data)){ mapSrc = data; applyMap(); renderPins(); toast("マップを設定しました"); }
+      };
+      im.onerror = function(){ toast("この画像は読み込めませんでした"); };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(f);
+  });
+  inp.click();
+}
+$("#btnMapLoad").addEventListener("click", pickMap);
+$("#btnMapSwap").addEventListener("click", function(){
+  openSheet('<h2>会場マップ</h2><div class="acts">'+
+    '<button data-x="mapnew">別の画像に差し替える</button>'+
+    '<button data-x="mapdel" class="danger">マップを削除（ピンは残ります）</button></div>');
+});
+
+/* ========== 書き出し ========== */
+$("#btnOut").addEventListener("click", function(){
+  var filled = state.rows.filter(function(r){return r.status!=="none";}).length;
+  openSheet('<h2>書き出し・バックアップ</h2>'+
+    '<p class="lead">会場を出る前に一度コピーして自分宛に送っておくと安心です。</p>'+
+    '<div class="field"><label>全体メモ（当日の気づき）</label><textarea id="dayNote" placeholder="会場全体の所感、次回までにやること">'+esc(state.note)+'</textarea></div>'+
+    '<h3>共有する</h3><div class="acts">'+
+      '<button data-x="text">テキストで表示・コピー<span class="sub">メール/LINE貼付</span></button>'+
+      '<button data-x="csv">CSVをダウンロード<span class="sub">Excel用</span></button>'+
+    '</div>'+
+    '<h3>バックアップ（'+filled+' 社入力済み）</h3><div class="acts">'+
+      '<button data-x="json">バックアップを保存<span class="sub">ピン位置も含む</span></button>'+
+      '<button data-x="restore">バックアップから復元</button>'+
+      '<button data-x="reset" class="danger">全メモを消去してやり直す</button>'+
+    '</div><div id="outWrap"></div>');
+  document.getElementById("dayNote").addEventListener("input", function(e){ state.note = e.target.value; save(); });
+});
+function reportText(){
+  var L = ["■ DSS2026 会場周回メモ"];
+  var done = state.rows.filter(function(r){return r.status==="done";}).length;
+  var fu = state.rows.filter(function(r){return r.status==="follow";}).length;
+  L.push("訪問済 "+done+" 社 / 要フォロー "+fu+" 社");
+  groupsOf(state.rows).forEach(function(z){
+    var g = state.rows.filter(function(r){return r.zone===z && r.status!=="none" && r.status!=="skip";});
+    if(!g.length) return;
+    L.push(""); L.push("【"+z+"】");
+    g.forEach(function(r){
+      L.push("・"+(r.star?"★ ":"")+r.name+"（"+r.kind+"／"+STATE_LABEL[r.status]+"）");
+      if(r.person) L.push("　担当: "+r.person);
+      if(r.product) L.push("　ブース/商品: "+r.product);
+      if(r.card) L.push("　名刺: あり");
+      if(r.memo) L.push("　メモ: "+r.memo.replace(/\n/g,"\n　　　"));
+    });
+  });
+  if(state.note){ L.push(""); L.push("【全体メモ】"); L.push(state.note); }
+  return L.join("\n");
+}
+function csvText(){
+  var lines = [["ゾーン","出展社","区分","ステータス","優先","名刺","担当者","ブース/商品名","メモ","マップピン"].join(",")];
+  state.rows.forEach(function(r){
+    lines.push([r.zone,r.name,r.kind,STATE_LABEL[r.status],r.star?"★":"",r.card?"○":"",r.person,r.product,r.memo,r.pin?"あり":""]
+      .map(function(v){ return '"'+String(v).replace(/"/g,'""')+'"'; }).join(","));
+  });
+  if(state.note) lines.push('"全体メモ","'+state.note.replace(/"/g,'""')+'"');
+  return "﻿"+lines.join("\r\n");
+}
+function stamp(){
+  var d=new Date(), p=function(n){return (n<10?"0":"")+n;};
+  return ""+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"_"+p(d.getHours())+p(d.getMinutes());
+}
+function download(name, text, type){
+  var b = new Blob([text], {type:type||"text/plain;charset=utf-8"});
+  var u = URL.createObjectURL(b), a = document.createElement("a");
+  a.href=u; a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(u); a.remove(); }, 500);
+}
+function showOut(text){
+  var w = document.getElementById("outWrap");
+  w.innerHTML = '<h3>この内容をコピーしてください</h3><textarea class="out" readonly></textarea>';
+  var ta = w.querySelector("textarea");
+  ta.value = text;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){ toast("コピーしました"); },function(){ toast("長押しして全選択→コピー"); });
+  } else { toast("長押しして全選択→コピー"); }
+  ta.scrollIntoView({behavior:"smooth",block:"center"});
+}
+function restore(){
+  var inp = document.createElement("input");
+  inp.type="file"; inp.accept=".json,application/json";
+  inp.addEventListener("change", function(){
+    var f = inp.files && inp.files[0]; if(!f) return;
+    var fr = new FileReader();
+    fr.onload = function(){
+      try{
+        var d = JSON.parse(fr.result);
+        if(!d.rows) throw 0;
+        localStorage.setItem(KEY, JSON.stringify({rows:d.rows, note:d.note||""}));
+        if(d.map){ writeMap(d.map); mapSrc = d.map; }
+        state = load(); openIds={}; closeSheet();
+        applyMap(); render(); renderPins(); renderWant(); toast("復元しました");
+      }catch(e){ toast("このファイルは読み込めませんでした"); }
+    };
+    fr.readAsText(f);
+  });
+  inp.click();
+}
+
+/* ========== シート ========== */
+function openSheet(html){
+  document.getElementById("sheetContent").innerHTML = html;
+  document.getElementById("sheet").classList.add("open");
+}
+function closeSheet(){ document.getElementById("sheet").classList.remove("open"); }
+document.getElementById("sheet").addEventListener("click", function(e){
+  if(e.target.hasAttribute("data-close")) closeSheet();
+});
+document.getElementById("sheetContent").addEventListener("click", function(e){
+  var b = e.target.closest("[data-x]"); if(!b) return;
+  var x = b.getAttribute("data-x");
+  if(x==="text") showOut(reportText());
+  else if(x==="csv") download("DSS2026_周回メモ_"+stamp()+".csv", csvText(), "text/csv;charset=utf-8");
+  else if(x==="json") download("DSS2026_backup_"+stamp()+".json",
+      JSON.stringify({rows:state.rows, note:state.note, map:mapSrc}), "application/json");
+  else if(x==="restore") restore();
+  else if(x==="mapnew"){ closeSheet(); pickMap(); }
+  else if(x==="mapdel"){
+    if(confirm("マップ画像を削除します。ピンの位置は残ります。")){
+      writeMap(""); mapSrc=""; img.removeAttribute("src"); applyMap(); closeSheet(); toast("マップを削除しました");
+    }
+  }
+  else if(x==="reset"){
+    if(confirm("入力したメモ・ステータス・ピンをすべて消去します。よろしいですか？")){
+      state = blank(); openIds={}; save(); closeSheet();
+      render(); renderPins(); renderWant(); toast("初期化しました");
+    }
+  }
+});
+
+/* ========== 起動 ========== */
+applyMap(); render(); renderWant(); setTab("list");
+})();
+</script>
+</body>
+</html>
