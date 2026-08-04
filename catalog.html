@@ -264,8 +264,8 @@ const COLS=[
  {k:'img',   t:'画像',   sort:false},
  {k:'name',  t:'商品名', cls:'tname'},
  {k:'tsuki', t:'月販',   cls:'tmonth'},
+ {k:'bbp',   t:'カート価格', cls:'tnum'},
  {k:'rank',  t:'ランク', cls:'tnum'},
- {k:'bbp',   t:'相場',   cls:'tnum'},
  {k:'brand', t:'ブランド'},
  {k:'maker', t:'製造者'},
  {k:'seller',t:'販売者(Buy Box)'},
@@ -293,8 +293,8 @@ function rowHTML(d){
     +'<td>'+thumb+'</td>'
     +'<td class="tname"><a href="'+url+'" target="_blank">'+esc(d.name)+'</a>'+chips+'</td>'
     +'<td class="tmonth" style="color:'+(d.tsuki>=500?'#fff':'#333')+';background:'+tierColor(d.tsuki)+'">'+Math.floor(d.tsuki)+'</td>'
-    +'<td class="tnum">'+(isNum(d.rank)?Math.round(d.rank).toLocaleString('ja-JP'):'—')+'</td>'
     +'<td class="tnum">'+yen(d.bbp)+'</td>'
+    +'<td class="tnum">'+(isNum(d.rank)?Math.round(d.rank).toLocaleString('ja-JP'):'—')+'</td>'
     +'<td>'+esc(d.brand)+'</td>'
     +'<td>'+esc(d.maker)+'</td>'
     +'<td>'+esc(d.seller)+'</td>'
