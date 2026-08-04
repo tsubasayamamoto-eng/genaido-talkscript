@@ -1,0 +1,316 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>カタログ仕上げ｜Keepa→月販50カタログ</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;background:#f4f5f7;color:#222}
+header{position:sticky;top:0;background:#37474f;color:#fff;padding:14px 20px;z-index:20;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header h1{margin:0;font-size:18px}.sub{font-size:12px;opacity:.85;margin-top:3px}
+.setup{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.drop{flex:1;min-width:260px;border:2px dashed #90a4ae;border-radius:10px;padding:14px 16px;text-align:center;font-size:13px;color:#cfd8dc;cursor:pointer;background:rgba(255,255,255,.05);transition:.15s}
+.drop.over{background:rgba(0,188,212,.25);border-color:#00bcd4;color:#fff}
+.drop b{color:#fff}
+.oname{padding:8px 12px;border-radius:8px;border:1px solid #607d8b;font-size:14px;width:180px}
+.tabs{margin-top:12px;display:none;gap:6px}
+.tabs.show{display:flex}
+.tab{background:#455a64;color:#cfd8dc;border:none;padding:8px 18px;border-radius:10px 10px 0 0;font-size:14px;cursor:pointer;font-weight:bold}
+.tab.act{background:#f4f5f7;color:#222}
+.bar{margin-top:0;display:none;gap:8px;flex-wrap:wrap;align-items:center;background:#455a64;padding:10px;border-radius:0 10px 10px 10px}
+.bar.show{display:flex}
+.btn{background:#546e7a;color:#fff;border:none;padding:6px 14px;border-radius:16px;font-size:13px;cursor:pointer}
+.btn.on{background:#00bcd4;font-weight:bold}.btn.print{background:#43a047}.btn.reset{background:#8d6e63}
+.btn.tgl{background:#37474f}.btn.tgl.act{background:#ff7043;font-weight:bold}
+.legend{font-size:11px;opacity:.9;margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:2px;vertical-align:middle}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;padding:18px}
+.empty{padding:60px 20px;text-align:center;color:#90a4ae;font-size:14px;line-height:1.8}
+.card{position:relative;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);display:flex;flex-direction:column;border:2px solid transparent}
+.card.t{border-color:#ef9a9a}
+.lnk{text-decoration:none;color:inherit;display:flex;flex-direction:column;flex:1}
+.card:hover{box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.hide{position:absolute;top:6px;right:6px;z-index:3;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:15px;line-height:1;cursor:pointer}
+.hide:hover{background:#e53935}
+.imgwrap{position:relative;background:#fff;height:180px;display:flex;align-items:center;justify-content:center;padding:10px}
+.imgwrap img{max-width:100%;max-height:100%;object-fit:contain}.noimg{color:#bbb;font-size:13px}
+.mbadge{position:absolute;top:8px;left:8px;color:#333;font-weight:bold;font-size:13px;padding:3px 9px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.body{padding:10px 12px;display:flex;flex-direction:column;gap:5px;flex:1}
+.chips{display:flex;gap:5px;flex-wrap:wrap}.chip{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:bold}
+.chip.tasha{background:#ffcdd2;color:#c62828}.chip.setb{background:#fff3e0;color:#e65100}
+.name{font-size:13px;line-height:1.35;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.brand{font-size:11px;color:#888}
+.jan{font-size:11px;color:#555;font-family:"SFMono-Regular",Consolas,monospace;background:#f5f5f5;padding:2px 6px;border-radius:5px;letter-spacing:.3px}.jan b{color:#222}
+.foot{margin-top:auto;display:flex;justify-content:space-between;align-items:baseline;gap:6px;padding-top:5px;border-top:1px solid #f0f0f0}
+.price{font-size:14px;font-weight:bold;color:#00838f}.seller{font-size:10px;color:#aaa;text-align:right}
+/* ===== 一覧表 ===== */
+.tblwrap{overflow-x:auto;padding:18px}
+table.cat{border-collapse:collapse;width:100%;font-size:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+table.cat th{position:sticky;top:0;background:#37474f;color:#fff;padding:8px 10px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;z-index:2}
+table.cat th:hover{background:#455a64}
+table.cat th .ar{opacity:.5;font-size:10px;margin-left:3px}
+table.cat th.sorted{background:#00838f}table.cat th.sorted .ar{opacity:1}
+table.cat td{padding:6px 10px;border-bottom:1px solid rgba(0,0,0,.08);vertical-align:middle}
+tr.trow:hover td{filter:brightness(.96)}
+.tthumb{width:44px;height:44px;object-fit:contain;background:#fff;border-radius:4px}
+.tname{max-width:320px;white-space:normal;line-height:1.3}
+.tname a{color:#0d47a1;text-decoration:none}.tname a:hover{text-decoration:underline}
+.tnum{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tmonth{font-weight:bold;text-align:center}
+.tjan{font-family:"SFMono-Regular",Consolas,monospace;color:#333;white-space:nowrap}
+.tchip{font-size:9px;padding:1px 5px;border-radius:6px;font-weight:bold;margin-left:4px}
+.tchip.tasha{background:#ffcdd2;color:#c62828}.tchip.setb{background:#fff3e0;color:#e65100}
+.txhide{cursor:pointer;color:#b0bec5;font-weight:bold;text-align:center}.txhide:hover{color:#e53935}
+@page{margin:0}
+@media print{
+ header,.hide,.txhide{display:none!important}body{background:#fff}
+ .grid{grid-template-columns:repeat(3,1fr);gap:8px;padding:8mm}
+ .card{break-inside:avoid;box-shadow:none;border:1px solid #ccc}.imgwrap{height:150px}.card:hover{box-shadow:none}
+ .tblwrap{padding:6mm;overflow:visible}table.cat{box-shadow:none;font-size:10px}
+ table.cat th{color:#000;background:#eee!important}tr.trow{break-inside:avoid}
+ .empty{display:none}
+}
+</style></head><body>
+<header>
+<h1>カタログ仕上げ <span id="cnt" style="opacity:.7;font-weight:normal"></span></h1>
+<div class="sub">Keepaエクスポート(xlsx)を下にドロップ → 月販50以上を「カード」＆「一覧表」で表示 / 重複集約 / Amazon本体除外 / JAN付き</div>
+<div class="setup">
+ <label class="drop" id="drop">📄 ここに <b>Keepa の xlsx</b> をドラッグ＆ドロップ（またはクリックして選択）
+  <input type="file" id="file" accept=".xlsx" style="display:none">
+ </label>
+ <input class="oname" id="oname" placeholder="卸名（任意）" value="">
+</div>
+<div class="tabs" id="tabs">
+ <button class="tab act" id="tabCard" onclick="setView('card')">🖼 カード</button>
+ <button class="tab" id="tabTable" onclick="setView('table')">📋 一覧表（並べ替え）</button>
+</div>
+<div class="bar" id="bar">
+<button class="btn on" onclick="flt(this,'all')">すべて</button>
+<button class="btn" onclick="flt(this,'jisha')">自社のみ</button>
+<button class="btn" onclick="flt(this,'tasha')">他社のみ</button>
+<button class="btn tgl" onclick="toggle('nb',this)">ノーブランド品を隠す</button>
+<button class="btn tgl" onclick="toggle('set',this)">セット/複数売りを隠す</button>
+<button class="btn print" onclick="window.print()">🖨 印刷 / PDF保存</button>
+<button class="btn reset" onclick="resetHidden()">非表示を全て戻す</button>
+<span class="legend">月販:
+<span><span class="dot" style="background:#e53935"></span>1000+</span>
+<span><span class="dot" style="background:#fb8c00"></span>500+</span>
+<span><span class="dot" style="background:#fbb74d"></span>200+</span>
+<span><span class="dot" style="background:#ffd54f"></span>100+</span>
+<span><span class="dot" style="background:#fff176"></span>50+</span>
+<span style="margin-left:6px">赤枠=他社</span></span>
+</div></header>
+
+<div class="grid" id="g">
+ <div class="empty" id="empty">まだデータがありません。<br>上の枠に Keepa の xlsx をドロップしてください。</div>
+</div>
+
+<div class="tblwrap" id="tblwrap" style="display:none">
+ <table class="cat" id="tbl"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
+</div>
+
+<script>
+// ===== 他社ブランド判定キーワード（卸ごとに調整可）=====
+const TASHA_KEYWORDS = ['コタ','COTA','KOTA','滝川','クレ・ド・ポー','clé de peau',
+                        'テクノエイト','小林工房','中央有機化学','ユーカリジャパン'];
+const SET_RE = /[×xＸ]\s*\d+\s*(個|本|セット|パック)|\d+\s*(個|本)\s*セット|まとめ買い|\d+\s*個\s*入/;
+
+let KEY='catalog_hidden_50';
+let curMode='all',hideNb=false,hideSet=false,view='card';
+let sortKey='tsuki',sortDir='desc';
+let ALL=[];
+
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const isNum=x=>typeof x==='number'&&isFinite(x);
+const num=x=>isNum(x)?x:(x!=null&&x!==''&&!isNaN(x)?parseFloat(x):null);
+const isTasha=b=>TASHA_KEYWORDS.some(k=>String(b||'').includes(k));
+const isSet=n=>SET_RE.test(String(n||''));
+const isNobrand=b=>['ノーブランド品','不明',''].includes(String(b||''));
+const tierColor=t=>t>=1000?'#e53935':t>=500?'#fb8c00':t>=200?'#fbb74d':t>=100?'#ffd54f':'#fff176';
+const rowTint =t=>t>=1000?'#ef9a9a':t>=500?'#ffcc80':t>=200?'#ffe0b2':t>=100?'#fff59d':'#fff9c4';
+const yen=v=>isNum(v)?'¥'+Math.round(v).toLocaleString('ja-JP'):'—';
+
+function colIndex(hdr,name){const i=hdr.indexOf(name);if(i<0)throw new Error('列が見つかりません: '+name);return i;}
+
+function processRows(rows){
+  const hdr=rows[0].map(v=>v==null?'':String(v));
+  const I={};
+  const map={img:'画像',name:'商品名',rank:'売れ筋ランキング: 現在価格',asin:'ASIN',
+    ean:'商品コード: EAN',brand:'ブランド',maker:'製造者',bb:'Buy Box: Buy Box セラー',
+    bbp:'Buy Box: 現在価格',tsuki:'月間売上トレンド: 先月の購入'};
+  for(const k in map) I[k]=colIndex(hdr,map[k]);
+  const groups={},noean=[];
+  for(let r=1;r<rows.length;r++){
+    const row=rows[r]; if(!row||row.length===0) continue;
+    const e=row[I.ean];
+    if(e!=null&&e!==''){const key=String(e).split(',')[0];(groups[key]=groups[key]||[]).push(row);}
+    else noean.push(row);
+  }
+  const score=r=>[-(num(r[I.tsuki])??-1), r[I.bb]==='Amazon'?1:0, num(r[I.rank])??9e9];
+  const cmp=(a,b)=>{const x=score(a),y=score(b);for(let i=0;i<3;i++){if(x[i]!==y[i])return x[i]-y[i];}return 0;};
+  let kept=[];
+  for(const k in groups){kept.push(groups[k].slice().sort(cmp)[0]);}
+  kept=kept.concat(noean);
+  const data=[];
+  for(const r of kept){
+    if(r[I.bb]==='Amazon') continue;              // Amazon本体除外
+    const t=num(r[I.tsuki]);
+    if(t==null||t<50) continue;                   // 月販50以上のみ
+    const brand=String(r[I.brand]||'');
+    data.push({img:String(r[I.img]||'').split(';')[0],name:String(r[I.name]||''),
+      brand:brand,maker:String(r[I.maker]||''),asin:String(r[I.asin]||''),
+      ean:String(r[I.ean]||'').split(',')[0].trim(),tsuki:t,rank:num(r[I.rank]),bbp:num(r[I.bbp]),
+      seller:String(r[I.bb]||''),tasha:isTasha(brand),
+      nobrand:isNobrand(brand),set:isSet(String(r[I.name]||''))});
+  }
+  return data;
+}
+
+// ===== 表示対象（フィルタ）＋ソート =====
+function visible(){
+  const h=getHidden();
+  let d=ALL.filter(x=>{
+    const modeok=(curMode==='all')||(curMode==='tasha'&&x.tasha)||(curMode==='jisha'&&!x.tasha);
+    return modeok&&!h.includes(x.asin)&&!(hideNb&&x.nobrand)&&!(hideSet&&x.set);
+  });
+  const numKeys={tsuki:1,rank:1,bbp:1};
+  d.sort((a,b)=>{
+    let x=a[sortKey],y=b[sortKey];
+    if(numKeys[sortKey]){
+      const nx=isNum(x),ny=isNum(y);
+      if(!nx&&!ny)return 0; if(!nx)return 1; if(!ny)return -1;   // 空は常に最後
+      return sortDir==='asc'?x-y:y-x;
+    }
+    x=String(x||'');y=String(y||'');
+    return sortDir==='asc'?x.localeCompare(y,'ja'):y.localeCompare(x,'ja');
+  });
+  return d;
+}
+
+// ===== カード =====
+function cardHTML(d){
+  const col=tierColor(d.tsuki);
+  const chips=(d.tasha?'<span class="chip tasha">他社ブランド</span>':'')+(d.set?'<span class="chip setb">セット品</span>':'');
+  const img=esc(d.img);
+  const imgtag=img?'<img loading="lazy" src="'+img+'" alt="">':'<div class="noimg">画像なし</div>';
+  const url='https://www.amazon.co.jp/dp/'+d.asin;
+  const jan=d.ean?esc(d.ean):'—';
+  return '<div class="card'+(d.tasha?' t':'')+'">'
+    +'<button class="hide" title="非表示" onclick="hideCard(event,\''+esc(d.asin)+'\')">×</button>'
+    +'<a class="lnk" href="'+url+'" target="_blank">'
+    +'<div class="imgwrap">'+imgtag+'<span class="mbadge" style="background:'+col+'">月販 '+Math.floor(d.tsuki)+'+</span></div>'
+    +'<div class="body"><div class="chips">'+chips+'</div><div class="name">'+esc(d.name)+'</div>'
+    +'<div class="brand">'+esc(d.brand)+'</div><div class="jan">JAN: <b>'+jan+'</b></div>'
+    +'<div class="foot"><span class="price">相場 '+yen(d.bbp)+'</span><span class="seller">'+esc(d.seller.slice(0,16))+'</span></div>'
+    +'</div></a></div>';
+}
+
+// ===== 一覧表 =====
+const COLS=[
+ {k:'img',   t:'画像',   sort:false},
+ {k:'name',  t:'商品名', cls:'tname'},
+ {k:'tsuki', t:'月販',   cls:'tmonth'},
+ {k:'rank',  t:'ランク', cls:'tnum'},
+ {k:'bbp',   t:'相場',   cls:'tnum'},
+ {k:'brand', t:'ブランド'},
+ {k:'maker', t:'製造者'},
+ {k:'seller',t:'販売者(Buy Box)'},
+ {k:'ean',   t:'JAN',    cls:'tjan'},
+ {k:'asin',  t:'ASIN',   cls:'tjan'},
+];
+function theadHTML(){
+  let h='<tr><th style="cursor:default">×</th>';
+  for(const c of COLS){
+    if(c.sort===false){h+='<th style="cursor:default">'+c.t+'</th>';continue;}
+    const on=sortKey===c.k;const ar=on?(sortDir==='asc'?'▲':'▼'):'⇅';
+    h+='<th class="'+(on?'sorted':'')+'" onclick="sortBy(\''+c.k+'\')">'+c.t+'<span class="ar">'+ar+'</span></th>';
+  }
+  return h+'</tr>';
+}
+function rowHTML(d){
+  const url='https://www.amazon.co.jp/dp/'+d.asin;
+  const tint=rowTint(d.tsuki);
+  const img=esc(d.img);
+  const thumb=img?'<a href="'+url+'" target="_blank"><img class="tthumb" loading="lazy" src="'+img+'"></a>':'';
+  const chips=(d.tasha?'<span class="tchip tasha">他社</span>':'')+(d.set?'<span class="tchip setb">セット</span>':'');
+  return '<tr class="trow" style="background:'+tint+'">'
+    +'<td class="txhide" title="非表示" onclick="hideCard(event,\''+esc(d.asin)+'\')">×</td>'
+    +'<td>'+thumb+'</td>'
+    +'<td class="tname"><a href="'+url+'" target="_blank">'+esc(d.name)+'</a>'+chips+'</td>'
+    +'<td class="tmonth" style="color:'+(d.tsuki>=500?'#fff':'#333')+';background:'+tierColor(d.tsuki)+'">'+Math.floor(d.tsuki)+'</td>'
+    +'<td class="tnum">'+(isNum(d.rank)?Math.round(d.rank).toLocaleString('ja-JP'):'—')+'</td>'
+    +'<td class="tnum">'+yen(d.bbp)+'</td>'
+    +'<td>'+esc(d.brand)+'</td>'
+    +'<td>'+esc(d.maker)+'</td>'
+    +'<td>'+esc(d.seller)+'</td>'
+    +'<td class="tjan">'+(d.ean?esc(d.ean):'—')+'</td>'
+    +'<td class="tjan">'+esc(d.asin)+'</td>'
+    +'</tr>';
+}
+
+function renderAll(){
+  const d=visible();
+  // カード
+  document.getElementById('g').innerHTML=d.length?d.map(cardHTML).join(''):
+    '<div class="empty">条件に合う商品がありません。</div>';
+  // 表
+  document.getElementById('thead').innerHTML=theadHTML();
+  document.getElementById('tbody').innerHTML=d.map(rowHTML).join('');
+  document.getElementById('cnt').textContent=ALL.length?'（表示 '+d.length+' / 全 '+ALL.length+' 商品）':'';
+}
+
+function setView(v){
+  view=v;
+  document.getElementById('tabCard').classList.toggle('act',v==='card');
+  document.getElementById('tabTable').classList.toggle('act',v==='table');
+  document.getElementById('g').style.display=v==='card'?'':'none';
+  document.getElementById('tblwrap').style.display=v==='table'?'':'none';
+}
+function sortBy(k){
+  if(sortKey===k){sortDir=sortDir==='asc'?'desc':'asc';}
+  else{sortKey=k;sortDir=(k==='tsuki'||k==='rank'||k==='bbp')?'desc':'asc';}
+  renderAll();
+}
+
+// ===== 読み込み =====
+function afterLoad(data){
+  ALL=data; sortKey='tsuki'; sortDir='desc';
+  const oroshi=document.getElementById('oname').value.trim();
+  KEY=(oroshi.replace(/\W+/g,'')||'catalog')+'_hidden_50';
+  document.title=(oroshi?oroshi+' ':'')+'月販50カタログ';
+  const has=data.length>0;
+  document.getElementById('empty').style.display=has?'none':'';
+  document.getElementById('tabs').classList.toggle('show',has);
+  document.getElementById('bar').classList.toggle('show',has);
+  renderAll();
+  if(!has) alert('月販50以上の商品が見つかりませんでした。\nKeepaの「月間売上トレンド: 先月の購入」列が空だと0件になります。');
+}
+function handleFile(f){
+  const rd=new FileReader();
+  rd.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+      if(!document.getElementById('oname').value.trim()){
+        document.getElementById('oname').value=f.name.replace(/\.xlsx$/i,'').replace(/KeepaExport[-_ ]?/i,'').trim();
+      }
+      afterLoad(processRows(rows));
+    }catch(err){alert('読み込みエラー: '+err.message);}
+  };
+  rd.readAsArrayBuffer(f);
+}
+const drop=document.getElementById('drop'),fileInput=document.getElementById('file');
+drop.addEventListener('click',()=>fileInput.click());
+fileInput.addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target.files[0]);});
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)handleFile(f);});
+document.getElementById('oname').addEventListener('change',()=>{if(ALL.length){KEY=(document.getElementById('oname').value.trim().replace(/\W+/g,'')||'catalog')+'_hidden_50';document.title=(document.getElementById('oname').value.trim()||'')+' 月販50カタログ';renderAll();}});
+
+// ===== フィルタ・非表示（localStorage）=====
+function getHidden(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}}
+function setHidden(a){try{localStorage.setItem(KEY,JSON.stringify(a))}catch(e){}}
+function hideCard(e,asin){e.preventDefault();e.stopPropagation();const h=getHidden();if(!h.includes(asin))h.push(asin);setHidden(h);renderAll();}
+function resetHidden(){setHidden([]);renderAll();}
+function flt(btn,mode){curMode=mode;document.querySelectorAll('.btn.on').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderAll();}
+function toggle(kind,btn){if(kind==='nb'){hideNb=!hideNb;btn.classList.toggle('act',hideNb);}else{hideSet=!hideSet;btn.classList.toggle('act',hideSet);}renderAll();}
+</script>
+</body></html>
