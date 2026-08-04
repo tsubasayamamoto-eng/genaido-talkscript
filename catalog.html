@@ -77,9 +77,14 @@ td .ed{width:100%;box-sizing:border-box;border:1px solid #cfd8dc;border-radius:4
 td .ed:focus{outline:none;border-color:#00838f;background:#fff}
 td textarea.ed{resize:vertical;min-height:26px;line-height:1.4}
 .memocol{width:150px}
+.srcbanner{display:flex;align-items:center;gap:12px;background:#fff3e0;border-bottom:1px solid #ffb74d;padding:9px 18px;font-size:13px;color:#e65100;font-weight:bold;flex-wrap:wrap}
+.srcbanner .btn{background:#8d6e63}
+.cardmemowrap{padding:0 12px 10px}
+.cardmemowrap textarea{width:100%;box-sizing:border-box;border:1px solid #cfd8dc;border-radius:5px;padding:4px 6px;font:inherit;background:#fffef7;resize:vertical;min-height:30px}
+.cardmemowrap textarea:focus{outline:none;border-color:#00838f;background:#fff}
 @page{margin:0}
 @media print{
- header,.ctools,.txhide,.tsave,.tdel,.tact,.savedbar,.makertabs,#manualBar{display:none!important}body{background:#fff}
+ header,.ctools,.txhide,.tsave,.tdel,.tact,.savedbar,.makertabs,#manualBar,.srcbanner{display:none!important}body{background:#fff}
  td .ed{border-color:transparent!important;background:transparent!important}
  .grid{grid-template-columns:repeat(3,1fr);gap:8px;padding:8mm}
  .card{break-inside:avoid;box-shadow:none;border:1px solid #ccc}.imgwrap{height:150px}.card:hover{box-shadow:none}
@@ -122,6 +127,11 @@ td textarea.ed{resize:vertical;min-height:26px;line-height:1.4}
 <span style="margin-left:6px">赤枠=他社 / 橙枠=保存済</span></span>
 </div></header>
 
+<div class="srcbanner" id="srcBanner" style="display:none">
+ <span class="bt"></span>
+ <button class="btn" onclick="backToFile()">← 読み込んだファイルに戻る</button>
+</div>
+
 <div class="grid" id="g">
  <div class="empty" id="empty">まだデータがありません。<br>上の枠に Keepa の xlsx をドロップしてください。</div>
 </div>
@@ -133,6 +143,8 @@ td textarea.ed{resize:vertical;min-height:26px;line-height:1.4}
 <div class="tblwrap" id="savedwrap" style="display:none">
  <div class="savedbar">
    <b id="savedCount">保存 0 件</b>
+   <button class="btn" onclick="openSavedIn('card')">🖼 カードで開く</button>
+   <button class="btn" onclick="openSavedIn('table')">📋 一覧表で開く</button>
    <button class="btn print" onclick="window.print()">🖨 印刷 / PDF</button>
    <button class="btn save" onclick="exportSavedCSV()">⬇ CSVで書き出す</button>
    <button class="btn reset" onclick="clearSaved()">🗑 保存を全消去</button>
@@ -157,6 +169,8 @@ let curMode='all',hideNb=false,hideSet=false,view='card',brandFilter='';
 let sortKey='tsuki',sortDir='desc';
 let savedMakerFilter='';           // 選択中のメーカータブ（''=全部）
 let collapsedMakers={};            // 折りたたみ中のメーカー
+let srcMode='file';                // カード/一覧表の表示元 'file'=読込ファイル / 'saved'=保存リスト
+let srcMaker='';                   // saved表示時のメーカー（''=全メーカー）
 let ALL=[];
 
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -250,6 +264,10 @@ function clearSaved(){ if(confirm('保存リストを全て消去します。よ
 
 // ===== 表示対象（フィルタ）＋ソート =====
 function visible(){
+  if(srcMode==='saved'){                       // 保存リストをカード/一覧表で表示
+    let d=getSaved().filter(x=>!srcMaker||savedMaker(x)===srcMaker);
+    return sortData(d);
+  }
   const h=getHidden();
   let d=ALL.filter(x=>{
     const modeok=(curMode==='all')||(curMode==='tasha'&&x.tasha)||(curMode==='jisha'&&!x.tasha);
@@ -278,22 +296,29 @@ function dragAttrs(d){
   return 'draggable="true" data-img="'+img+'" data-name="'+esc(d.name)+'" data-code="'+esc(d.ean||'')+'" data-asin="'+esc(d.asin)+'"';
 }
 function cardHTML(d){
-  const col=tierColor(d.tsuki);const sv=savedHas(d.asin);
+  const saved=srcMode==='saved', id=idOf(d);
+  const col=tierColor(d.tsuki||0);const sv=saved?true:savedHas(d.asin);
   const chips=(d.tasha?'<span class="chip tasha">他社ブランド</span>':'')+(d.set?'<span class="chip setb">セット品</span>':'');
   const img=esc(d.img);
   const imgtag=img?'<img class="pimg" '+dragAttrs(d)+' loading="lazy" src="'+img+'" alt="">':'<div class="noimg">画像なし</div>';
-  const url='https://www.amazon.co.jp/dp/'+d.asin;
+  const hasLink=!!d.asin;
+  const url=hasLink?'https://www.amazon.co.jp/dp/'+d.asin:'#';
   const jan=d.ean?esc(d.ean):'—';
-  return '<div class="card'+(d.tasha?' t':'')+(sv?' saved':'')+'">'
-    +'<div class="ctools">'
-    +'<button class="save'+(sv?' on':'')+'" title="保存リストに追加/解除" onclick="toggleSave(event,\''+esc(d.asin)+'\')">★</button>'
-    +'<button class="hide" title="非表示" onclick="hideCard(event,\''+esc(d.asin)+'\')">×</button></div>'
-    +'<a class="lnk" href="'+url+'" target="_blank">'
-    +'<div class="imgwrap">'+imgtag+'<span class="mbadge" style="background:'+col+'">月販 '+Math.floor(d.tsuki)+'+</span></div>'
-    +'<div class="body"><div class="chips">'+chips+'</div><div class="name">'+esc(d.name)+'</div>'
+  const nameHtml=esc(d.name)||'<span style="color:#bbb">（商品名未入力）</span>';
+  const tools = saved
+    ? '<div class="ctools"><button class="save on" title="保存から削除" onclick="delById(event,\''+id+'\')">★</button></div>'
+    : '<div class="ctools"><button class="save'+(sv?' on':'')+'" title="保存リストに追加/解除" onclick="toggleSave(event,\''+esc(d.asin)+'\')">★</button>'
+      +'<button class="hide" title="非表示" onclick="hideCard(event,\''+esc(d.asin)+'\')">×</button></div>';
+  const inner='<div class="imgwrap">'+imgtag+'<span class="mbadge" style="background:'+col+'">月販 '+Math.floor(d.tsuki||0)+'+</span></div>'
+    +'<div class="body"><div class="chips">'+chips+'</div><div class="name">'+nameHtml+'</div>'
     +'<div class="brand">'+esc(d.brand)+'</div><div class="jan">JAN: <b>'+jan+'</b></div>'
-    +'<div class="foot"><span class="price">相場 '+yen(d.bbp)+'</span><span class="seller">'+esc(d.seller.slice(0,16))+'</span></div>'
-    +'</div></a></div>';
+    +'<div class="foot"><span class="price">'+(saved?'カート ':'相場 ')+yen(d.bbp)+'</span><span class="seller">'+esc((d.seller||'').slice(0,16))+'</span></div></div>';
+  const memo = saved
+    ? '<div class="cardmemowrap"><textarea placeholder="仕入値・ロット・メモ" onchange="editSaved(\''+id+'\',\'_memo\',this.value)">'+esc(d._memo||'')+'</textarea></div>'
+    : '';
+  return '<div class="card'+(d.tasha?' t':'')+(sv?' saved':'')+'">'+tools
+    +(hasLink?'<a class="lnk" href="'+url+'" target="_blank">'+inner+'</a>':'<div class="lnk">'+inner+'</div>')
+    +memo+'</div>';
 }
 
 // ===== 一覧表 =====
@@ -310,34 +335,42 @@ const COLS=[
  {k:'asin',  t:'ASIN',   cls:'tjan'},
 ];
 function theadHTML(){
-  let h='<tr><th style="cursor:default">★/×</th>';
+  let h='<tr><th style="cursor:default">'+(srcMode==='saved'?'削除':'★/×')+'</th>';
   for(const c of COLS){
     if(c.sort===false){h+='<th style="cursor:default">'+c.t+'</th>';continue;}
     const on=sortKey===c.k;const ar=on?(sortDir==='asc'?'▲':'▼'):'⇅';
     h+='<th class="'+(on?'sorted':'')+'" onclick="sortBy(\''+c.k+'\')">'+c.t+'<span class="ar">'+ar+'</span></th>';
   }
+  if(srcMode==='saved') h+='<th style="cursor:default" class="memocol">メモ（編集可）</th>';
   return h+'</tr>';
 }
 function rowHTML(d){
-  const url='https://www.amazon.co.jp/dp/'+d.asin;
-  const tint=rowTint(d.tsuki);const sv=savedHas(d.asin);
+  const saved=srcMode==='saved', id=idOf(d);
+  const hasLink=!!d.asin;
+  const url=hasLink?'https://www.amazon.co.jp/dp/'+d.asin:'#';
+  const tint=rowTint(d.tsuki||0);const sv=saved?true:savedHas(d.asin);
   const img=esc(d.img);
-  const thumb=img?'<a href="'+url+'" target="_blank"><img class="tthumb pimg" '+dragAttrs(d)+' loading="lazy" src="'+img+'"></a>':'';
+  const thumb=img?((hasLink?'<a href="'+url+'" target="_blank">':'')+'<img class="tthumb pimg" '+dragAttrs(d)+' loading="lazy" src="'+img+'">'+(hasLink?'</a>':'')):'';
   const chips=(d.tasha?'<span class="tchip tasha">他社</span>':'')+(d.set?'<span class="tchip setb">セット</span>':'');
-  return '<tr class="trow" style="background:'+tint+'">'
-    +'<td class="tact"><span class="tsave'+(sv?' on':'')+'" title="保存" onclick="toggleSave(event,\''+esc(d.asin)+'\')">★</span> '
-    +'<span class="txhide" title="非表示" onclick="hideCard(event,\''+esc(d.asin)+'\')">×</span></td>'
+  const act = saved
+    ? '<td class="tact"><span class="tdel" title="保存から削除" onclick="delById(event,\''+id+'\')">×</span></td>'
+    : '<td class="tact"><span class="tsave'+(sv?' on':'')+'" title="保存" onclick="toggleSave(event,\''+esc(d.asin)+'\')">★</span> '
+      +'<span class="txhide" title="非表示" onclick="hideCard(event,\''+esc(d.asin)+'\')">×</span></td>';
+  const nameCell = hasLink?'<a href="'+url+'" target="_blank">'+esc(d.name)+'</a>':(esc(d.name)||'<span style="color:#bbb">（未入力）</span>');
+  let tr='<tr class="trow" style="background:'+tint+'">'
+    +act
     +'<td>'+thumb+'</td>'
-    +'<td class="tname"><a href="'+url+'" target="_blank">'+esc(d.name)+'</a>'+chips+'</td>'
-    +'<td class="tmonth" style="color:'+(d.tsuki>=500?'#fff':'#333')+';background:'+tierColor(d.tsuki)+'">'+Math.floor(d.tsuki)+'</td>'
+    +'<td class="tname">'+nameCell+chips+'</td>'
+    +'<td class="tmonth" style="color:'+((d.tsuki||0)>=500?'#fff':'#333')+';background:'+tierColor(d.tsuki||0)+'">'+Math.floor(d.tsuki||0)+'</td>'
     +'<td class="tnum">'+yen(d.bbp)+'</td>'
     +'<td class="tnum">'+(isNum(d.rank)?Math.round(d.rank).toLocaleString('ja-JP'):'—')+'</td>'
     +'<td>'+esc(d.brand)+'</td>'
     +'<td>'+esc(d.maker)+'</td>'
     +'<td>'+esc(d.seller)+'</td>'
     +'<td class="tjan">'+(d.ean?esc(d.ean):'—')+'</td>'
-    +'<td class="tjan">'+esc(d.asin)+'</td>'
-    +'</tr>';
+    +'<td class="tjan">'+esc(d.asin)+'</td>';
+  if(saved) tr+='<td class="memocol"><textarea class="ed" placeholder="仕入値・ロット・メモ" onchange="editSaved(\''+id+'\',\'_memo\',this.value)">'+esc(d._memo||'')+'</textarea></td>';
+  return tr+'</tr>';
 }
 
 // ===== 保存リスト表示（メーカー＝製造者ごとにタブでファイリング）=====
@@ -412,19 +445,30 @@ function exportSavedCSV(){
 // ===== 描画・ビュー =====
 function renderAll(){
   const d=visible();
-  document.getElementById('g').innerHTML=d.length?d.map(cardHTML).join(''):
-    '<div class="empty">'+(ALL.length?'条件に合う商品がありません。':'まだデータがありません。上の枠に Keepa の xlsx をドロップしてください。')+'</div>';
+  const emptyMsg=srcMode==='saved'?'この表示元に商品がありません。':
+    (ALL.length?'条件に合う商品がありません。':'まだデータがありません。上の枠に Keepa の xlsx をドロップしてください。');
+  document.getElementById('g').innerHTML=d.length?d.map(cardHTML).join(''):'<div class="empty">'+emptyMsg+'</div>';
   document.getElementById('thead').innerHTML=theadHTML();
   document.getElementById('tbody').innerHTML=d.map(rowHTML).join('');
-  document.getElementById('cnt').textContent=ALL.length?'（表示 '+d.length+' / 全 '+ALL.length+' 商品）':'';
+  document.getElementById('cnt').textContent = srcMode==='saved'
+    ? '（保存リスト'+(srcMaker?'：'+srcMaker:'')+' '+d.length+'件）'
+    : (ALL.length?'（表示 '+d.length+' / 全 '+ALL.length+' 商品）':'');
 }
+function updateBanner(){
+  const b=document.getElementById('srcBanner');
+  const show=srcMode==='saved'&&(view==='card'||view==='table');
+  b.style.display=show?'':'none';
+  if(show) b.querySelector('.bt').textContent='⭐ 保存リスト'+(srcMaker?'（'+srcMaker+'）':'（全メーカー）')+' を表示中 — ★で削除・メモ編集ができます';
+}
+function openSavedIn(v){ srcMode='saved'; srcMaker=savedMakerFilter; sortKey='tsuki'; sortDir='desc'; setView(v); refresh(); }
+function backToFile(){ srcMode='file'; srcMaker=''; refresh(); }
 function updateTabs(){
   const hasFile=ALL.length>0, hasSaved=getSaved().length>0;
   document.getElementById('tabs').classList.toggle('show',hasFile||hasSaved);
   document.getElementById('bar').classList.toggle('show',hasFile||hasSaved);
   document.getElementById('tabSaved').textContent='⭐ 保存リスト'+(hasSaved?'（'+getSaved().length+'）':'');
 }
-function refresh(){ renderAll(); renderSaved(); updateTabs(); }
+function refresh(){ renderAll(); renderSaved(); updateTabs(); updateBanner(); }
 
 function setView(v){
   view=v;
@@ -435,6 +479,7 @@ function setView(v){
   document.getElementById('tblwrap').style.display=v==='table'?'':'none';
   document.getElementById('savedwrap').style.display=v==='saved'?'':'none';
   if(v==='saved') renderSaved();
+  updateBanner();
 }
 function sortBy(k){
   if(sortKey===k){sortDir=sortDir==='asc'?'desc':'asc';}
@@ -450,7 +495,7 @@ function populateBrands(){
   sel.value='';brandFilter='';
 }
 function afterLoad(data){
-  ALL=data; sortKey='tsuki'; sortDir='desc'; brandFilter='';
+  ALL=data; sortKey='tsuki'; sortDir='desc'; brandFilter=''; srcMode='file'; srcMaker='';
   const oroshi=document.getElementById('oname').value.trim();
   KEY=(oroshi.replace(/\W+/g,'')||'catalog')+'_hidden_50';
   document.title=(oroshi?oroshi+' ':'')+'月販50カタログ';
@@ -460,7 +505,7 @@ function afterLoad(data){
   if(!data.length) alert('月販50以上の商品が見つかりませんでした。\nKeepaの「月間売上トレンド: 先月の購入」列が空だと0件になります。');
 }
 function resetAll(){
-  ALL=[]; curMode='all'; hideNb=false; hideSet=false; brandFilter='';
+  ALL=[]; curMode='all'; hideNb=false; hideSet=false; brandFilter=''; srcMode='file'; srcMaker='';
   sortKey='tsuki'; sortDir='desc';
   document.getElementById('file').value='';
   document.getElementById('oname').value='';
