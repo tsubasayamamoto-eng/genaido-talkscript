@@ -18,17 +18,21 @@ header h1{margin:0;font-size:18px}.sub{font-size:12px;opacity:.85;margin-top:3px
 .bar.show{display:flex}
 .btn{background:#546e7a;color:#fff;border:none;padding:6px 14px;border-radius:16px;font-size:13px;cursor:pointer}
 .btn.on{background:#00bcd4;font-weight:bold}.btn.print{background:#43a047}.btn.reset{background:#8d6e63}
+.btn.newload{background:#c62828}.btn.save{background:#f9a825;color:#222;font-weight:bold}
 .btn.tgl{background:#37474f}.btn.tgl.act{background:#ff7043;font-weight:bold}
+.brandsel{padding:6px 10px;border-radius:14px;border:none;font-size:13px;max-width:200px}
 .legend{font-size:11px;opacity:.9;margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:2px;vertical-align:middle}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;padding:18px}
 .empty{padding:60px 20px;text-align:center;color:#90a4ae;font-size:14px;line-height:1.8}
 .card{position:relative;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1);display:flex;flex-direction:column;border:2px solid transparent}
-.card.t{border-color:#ef9a9a}
+.card.t{border-color:#ef9a9a}.card.saved{border-color:#f9a825}
 .lnk{text-decoration:none;color:inherit;display:flex;flex-direction:column;flex:1}
 .card:hover{box-shadow:0 6px 18px rgba(0,0,0,.18)}
-.hide{position:absolute;top:6px;right:6px;z-index:3;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:15px;line-height:1;cursor:pointer}
-.hide:hover{background:#e53935}
+.ctools{position:absolute;top:6px;right:6px;z-index:3;display:flex;gap:5px}
+.ctools button{width:26px;height:26px;border-radius:50%;border:none;font-size:15px;line-height:1;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.ctools .save{background:#fff;color:#bbb}.ctools .save.on{background:#f9a825;color:#fff}
+.ctools .hide{background:rgba(0,0,0,.55);color:#fff}.ctools .hide:hover{background:#e53935}
 .imgwrap{position:relative;background:#fff;height:180px;display:flex;align-items:center;justify-content:center;padding:10px}
 .imgwrap img{max-width:100%;max-height:100%;object-fit:contain}.noimg{color:#bbb;font-size:13px}
 .mbadge{position:absolute;top:8px;left:8px;color:#333;font-weight:bold;font-size:13px;padding:3px 9px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
@@ -40,8 +44,9 @@ header h1{margin:0;font-size:18px}.sub{font-size:12px;opacity:.85;margin-top:3px
 .jan{font-size:11px;color:#555;font-family:"SFMono-Regular",Consolas,monospace;background:#f5f5f5;padding:2px 6px;border-radius:5px;letter-spacing:.3px}.jan b{color:#222}
 .foot{margin-top:auto;display:flex;justify-content:space-between;align-items:baseline;gap:6px;padding-top:5px;border-top:1px solid #f0f0f0}
 .price{font-size:14px;font-weight:bold;color:#00838f}.seller{font-size:10px;color:#aaa;text-align:right}
-/* ===== 一覧表 ===== */
+/* ===== 一覧表 / 保存リスト ===== */
 .tblwrap{overflow-x:auto;padding:18px}
+.savedbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:13px}
 table.cat{border-collapse:collapse;width:100%;font-size:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.1)}
 table.cat th{position:sticky;top:0;background:#37474f;color:#fff;padding:8px 10px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;z-index:2}
 table.cat th:hover{background:#455a64}
@@ -57,10 +62,13 @@ tr.trow:hover td{filter:brightness(.96)}
 .tjan{font-family:"SFMono-Regular",Consolas,monospace;color:#333;white-space:nowrap}
 .tchip{font-size:9px;padding:1px 5px;border-radius:6px;font-weight:bold;margin-left:4px}
 .tchip.tasha{background:#ffcdd2;color:#c62828}.tchip.setb{background:#fff3e0;color:#e65100}
-.txhide{cursor:pointer;color:#b0bec5;font-weight:bold;text-align:center}.txhide:hover{color:#e53935}
+.tact{white-space:nowrap;text-align:center}
+.tsave{cursor:pointer;color:#cfcfcf;font-size:16px}.tsave.on{color:#f9a825}
+.txhide,.tdel{cursor:pointer;color:#b0bec5;font-weight:bold}.txhide:hover,.tdel:hover{color:#e53935}
+.brandhead td{background:#eceff1!important;font-weight:bold;color:#37474f;font-size:12px}
 @page{margin:0}
 @media print{
- header,.hide,.txhide{display:none!important}body{background:#fff}
+ header,.ctools,.txhide,.tsave,.tdel,.tact,.savedbar{display:none!important}body{background:#fff}
  .grid{grid-template-columns:repeat(3,1fr);gap:8px;padding:8mm}
  .card{break-inside:avoid;box-shadow:none;border:1px solid #ccc}.imgwrap{height:150px}.card:hover{box-shadow:none}
  .tblwrap{padding:6mm;overflow:visible}table.cat{box-shadow:none;font-size:10px}
@@ -70,7 +78,7 @@ tr.trow:hover td{filter:brightness(.96)}
 </style></head><body>
 <header>
 <h1>カタログ仕上げ <span id="cnt" style="opacity:.7;font-weight:normal"></span></h1>
-<div class="sub">Keepaエクスポート(xlsx)を下にドロップ → 月販50以上を「カード」＆「一覧表」で表示 / 重複集約 / Amazon本体除外 / JAN付き</div>
+<div class="sub">Keepaエクスポート(xlsx)を下にドロップ → 月販50以上を「カード」＆「一覧表」で表示 / ★で保存リストに蓄積 / 重複集約 / Amazon本体除外</div>
 <div class="setup">
  <label class="drop" id="drop">📄 ここに <b>Keepa の xlsx</b> をドラッグ＆ドロップ（またはクリックして選択）
   <input type="file" id="file" accept=".xlsx" style="display:none">
@@ -80,22 +88,26 @@ tr.trow:hover td{filter:brightness(.96)}
 <div class="tabs" id="tabs">
  <button class="tab act" id="tabCard" onclick="setView('card')">🖼 カード</button>
  <button class="tab" id="tabTable" onclick="setView('table')">📋 一覧表（並べ替え）</button>
+ <button class="tab" id="tabSaved" onclick="setView('saved')">⭐ 保存リスト</button>
 </div>
 <div class="bar" id="bar">
 <button class="btn on" onclick="flt(this,'all')">すべて</button>
 <button class="btn" onclick="flt(this,'jisha')">自社のみ</button>
 <button class="btn" onclick="flt(this,'tasha')">他社のみ</button>
+<select class="brandsel" id="brandSel" onchange="refresh()"><option value="">全ブランド</option></select>
 <button class="btn tgl" onclick="toggle('nb',this)">ノーブランド品を隠す</button>
 <button class="btn tgl" onclick="toggle('set',this)">セット/複数売りを隠す</button>
+<button class="btn save" onclick="saveVisible()">★ 表示中を保存リストへ</button>
 <button class="btn print" onclick="window.print()">🖨 印刷 / PDF保存</button>
-<button class="btn reset" onclick="resetHidden()">非表示を全て戻す</button>
+<button class="btn reset" onclick="resetHidden()">非表示を戻す</button>
+<button class="btn newload" onclick="resetAll()">🔄 リセット（新規読込）</button>
 <span class="legend">月販:
 <span><span class="dot" style="background:#e53935"></span>1000+</span>
 <span><span class="dot" style="background:#fb8c00"></span>500+</span>
 <span><span class="dot" style="background:#fbb74d"></span>200+</span>
 <span><span class="dot" style="background:#ffd54f"></span>100+</span>
 <span><span class="dot" style="background:#fff176"></span>50+</span>
-<span style="margin-left:6px">赤枠=他社</span></span>
+<span style="margin-left:6px">赤枠=他社 / 橙枠=保存済</span></span>
 </div></header>
 
 <div class="grid" id="g">
@@ -106,14 +118,27 @@ tr.trow:hover td{filter:brightness(.96)}
  <table class="cat" id="tbl"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
 </div>
 
+<div class="tblwrap" id="savedwrap" style="display:none">
+ <div class="savedbar">
+   <b id="savedCount">保存 0 件</b>
+   <span>ブランド絞込:</span>
+   <select class="brandsel" id="savedBrandSel" onchange="renderSaved()"><option value="">全ブランド</option></select>
+   <button class="btn print" onclick="window.print()">🖨 印刷 / PDF</button>
+   <button class="btn save" onclick="exportSavedCSV()">⬇ CSVで書き出す</button>
+   <button class="btn reset" onclick="clearSaved()">🗑 保存を全消去</button>
+ </div>
+ <table class="cat" id="savedtbl"><thead id="savedhead"></thead><tbody id="savedbody"></tbody></table>
+</div>
+
 <script>
 // ===== 他社ブランド判定キーワード（卸ごとに調整可）=====
 const TASHA_KEYWORDS = ['コタ','COTA','KOTA','滝川','クレ・ド・ポー','clé de peau',
                         'テクノエイト','小林工房','中央有機化学','ユーカリジャパン'];
 const SET_RE = /[×xＸ]\s*\d+\s*(個|本|セット|パック)|\d+\s*(個|本)\s*セット|まとめ買い|\d+\s*個\s*入/;
+const SAVED_KEY='catalog_saved_v1';   // 保存リストは全ファイル共通で蓄積
 
 let KEY='catalog_hidden_50';
-let curMode='all',hideNb=false,hideSet=false,view='card';
+let curMode='all',hideNb=false,hideSet=false,view='card',brandFilter='';
 let sortKey='tsuki',sortDir='desc';
 let ALL=[];
 
@@ -163,37 +188,64 @@ function processRows(rows){
   return data;
 }
 
+// ===== 保存リスト（localStorage・全ファイル共通で蓄積）=====
+function getSaved(){try{return JSON.parse(localStorage.getItem(SAVED_KEY)||'[]')}catch(e){return[]}}
+function setSaved(a){try{localStorage.setItem(SAVED_KEY,JSON.stringify(a))}catch(e){}}
+function savedHas(asin){return getSaved().some(x=>x.asin===asin);}
+function saveOne(asin){
+  const d=ALL.find(x=>x.asin===asin); if(!d)return false;
+  const s=getSaved(); if(s.some(x=>x.asin===asin))return false;
+  const oroshi=document.getElementById('oname').value.trim();
+  s.push(Object.assign({},d,{_oroshi:oroshi,_savedAt:new Date().toISOString().slice(0,10)}));
+  setSaved(s); return true;
+}
+function unsaveOne(asin){setSaved(getSaved().filter(x=>x.asin!==asin));}
+function toggleSave(e,asin){e.preventDefault();e.stopPropagation();if(savedHas(asin))unsaveOne(asin);else saveOne(asin);refresh();}
+function saveVisible(){
+  const v=visible(); let n=0;
+  for(const d of v){ if(saveOne(d.asin)) n++; }
+  refresh();
+  alert(n+' 件を保存リストに追加しました。'+(v.length-n>0?'（'+(v.length-n)+' 件は保存済み）':''));
+}
+function delSaved(e,asin){e.preventDefault();e.stopPropagation();unsaveOne(asin);refresh();}
+function clearSaved(){ if(confirm('保存リストを全て消去します。よろしいですか？')){setSaved([]);refresh();} }
+
 // ===== 表示対象（フィルタ）＋ソート =====
 function visible(){
   const h=getHidden();
   let d=ALL.filter(x=>{
     const modeok=(curMode==='all')||(curMode==='tasha'&&x.tasha)||(curMode==='jisha'&&!x.tasha);
-    return modeok&&!h.includes(x.asin)&&!(hideNb&&x.nobrand)&&!(hideSet&&x.set);
+    const brandok=!brandFilter||x.brand===brandFilter;
+    return modeok&&brandok&&!h.includes(x.asin)&&!(hideNb&&x.nobrand)&&!(hideSet&&x.set);
   });
+  return sortData(d);
+}
+function sortData(d){
   const numKeys={tsuki:1,rank:1,bbp:1};
-  d.sort((a,b)=>{
+  return d.slice().sort((a,b)=>{
     let x=a[sortKey],y=b[sortKey];
     if(numKeys[sortKey]){
       const nx=isNum(x),ny=isNum(y);
-      if(!nx&&!ny)return 0; if(!nx)return 1; if(!ny)return -1;   // 空は常に最後
+      if(!nx&&!ny)return 0; if(!nx)return 1; if(!ny)return -1;
       return sortDir==='asc'?x-y:y-x;
     }
     x=String(x||'');y=String(y||'');
     return sortDir==='asc'?x.localeCompare(y,'ja'):y.localeCompare(x,'ja');
   });
-  return d;
 }
 
 // ===== カード =====
 function cardHTML(d){
-  const col=tierColor(d.tsuki);
+  const col=tierColor(d.tsuki);const sv=savedHas(d.asin);
   const chips=(d.tasha?'<span class="chip tasha">他社ブランド</span>':'')+(d.set?'<span class="chip setb">セット品</span>':'');
   const img=esc(d.img);
   const imgtag=img?'<img loading="lazy" src="'+img+'" alt="">':'<div class="noimg">画像なし</div>';
   const url='https://www.amazon.co.jp/dp/'+d.asin;
   const jan=d.ean?esc(d.ean):'—';
-  return '<div class="card'+(d.tasha?' t':'')+'">'
-    +'<button class="hide" title="非表示" onclick="hideCard(event,\''+esc(d.asin)+'\')">×</button>'
+  return '<div class="card'+(d.tasha?' t':'')+(sv?' saved':'')+'">'
+    +'<div class="ctools">'
+    +'<button class="save'+(sv?' on':'')+'" title="保存リストに追加/解除" onclick="toggleSave(event,\''+esc(d.asin)+'\')">★</button>'
+    +'<button class="hide" title="非表示" onclick="hideCard(event,\''+esc(d.asin)+'\')">×</button></div>'
     +'<a class="lnk" href="'+url+'" target="_blank">'
     +'<div class="imgwrap">'+imgtag+'<span class="mbadge" style="background:'+col+'">月販 '+Math.floor(d.tsuki)+'+</span></div>'
     +'<div class="body"><div class="chips">'+chips+'</div><div class="name">'+esc(d.name)+'</div>'
@@ -216,7 +268,7 @@ const COLS=[
  {k:'asin',  t:'ASIN',   cls:'tjan'},
 ];
 function theadHTML(){
-  let h='<tr><th style="cursor:default">×</th>';
+  let h='<tr><th style="cursor:default">★/×</th>';
   for(const c of COLS){
     if(c.sort===false){h+='<th style="cursor:default">'+c.t+'</th>';continue;}
     const on=sortKey===c.k;const ar=on?(sortDir==='asc'?'▲':'▼'):'⇅';
@@ -226,12 +278,13 @@ function theadHTML(){
 }
 function rowHTML(d){
   const url='https://www.amazon.co.jp/dp/'+d.asin;
-  const tint=rowTint(d.tsuki);
+  const tint=rowTint(d.tsuki);const sv=savedHas(d.asin);
   const img=esc(d.img);
   const thumb=img?'<a href="'+url+'" target="_blank"><img class="tthumb" loading="lazy" src="'+img+'"></a>':'';
   const chips=(d.tasha?'<span class="tchip tasha">他社</span>':'')+(d.set?'<span class="tchip setb">セット</span>':'');
   return '<tr class="trow" style="background:'+tint+'">'
-    +'<td class="txhide" title="非表示" onclick="hideCard(event,\''+esc(d.asin)+'\')">×</td>'
+    +'<td class="tact"><span class="tsave'+(sv?' on':'')+'" title="保存" onclick="toggleSave(event,\''+esc(d.asin)+'\')">★</span> '
+    +'<span class="txhide" title="非表示" onclick="hideCard(event,\''+esc(d.asin)+'\')">×</span></td>'
     +'<td>'+thumb+'</td>'
     +'<td class="tname"><a href="'+url+'" target="_blank">'+esc(d.name)+'</a>'+chips+'</td>'
     +'<td class="tmonth" style="color:'+(d.tsuki>=500?'#fff':'#333')+';background:'+tierColor(d.tsuki)+'">'+Math.floor(d.tsuki)+'</td>'
@@ -245,23 +298,79 @@ function rowHTML(d){
     +'</tr>';
 }
 
+// ===== 保存リスト表示（ブランドごとにまとめる）=====
+function renderSaved(){
+  let s=getSaved();
+  const bsel=document.getElementById('savedBrandSel');
+  const brands=[...new Set(s.map(x=>x.brand||'(不明)'))].sort((a,b)=>a.localeCompare(b,'ja'));
+  const cur=bsel.value;
+  bsel.innerHTML='<option value="">全ブランド（'+s.length+'件）</option>'+brands.map(b=>'<option value="'+esc(b)+'">'+esc(b)+'</option>').join('');
+  if(brands.includes(cur)) bsel.value=cur;
+  const bf=bsel.value;
+  let list=s.filter(x=>!bf||(x.brand||'(不明)')===bf);
+  // ブランド→月販降順
+  list.sort((a,b)=>{const ba=(a.brand||'(不明)'),bb=(b.brand||'(不明)');if(ba!==bb)return ba.localeCompare(bb,'ja');return (b.tsuki||0)-(a.tsuki||0);});
+  document.getElementById('savedCount').textContent='保存 '+s.length+' 件'+(bf?'（表示 '+list.length+'）':'');
+  document.getElementById('savedhead').innerHTML=
+    '<tr><th style="cursor:default">削除</th><th>画像</th><th>商品名</th><th>ブランド</th><th>製造者</th><th>月販</th><th>相場</th><th>JAN</th><th>卸/保存日</th></tr>';
+  let html='',lastBrand=null;
+  for(const d of list){
+    const b=d.brand||'(不明)';
+    if(b!==lastBrand){html+='<tr class="brandhead"><td></td><td colspan="8">🏷 '+esc(b)+'</td></tr>';lastBrand=b;}
+    const url='https://www.amazon.co.jp/dp/'+d.asin;
+    const img=esc(d.img);
+    const thumb=img?'<a href="'+url+'" target="_blank"><img class="tthumb" loading="lazy" src="'+img+'"></a>':'';
+    html+='<tr class="trow" style="background:'+rowTint(d.tsuki||0)+'">'
+      +'<td class="tdel" title="この商品を保存から削除" onclick="delSaved(event,\''+esc(d.asin)+'\')">×</td>'
+      +'<td>'+thumb+'</td>'
+      +'<td class="tname"><a href="'+url+'" target="_blank">'+esc(d.name)+'</a></td>'
+      +'<td>'+esc(d.brand)+'</td><td>'+esc(d.maker||'')+'</td>'
+      +'<td class="tmonth" style="color:'+((d.tsuki||0)>=500?'#fff':'#333')+';background:'+tierColor(d.tsuki||0)+'">'+Math.floor(d.tsuki||0)+'</td>'
+      +'<td class="tnum">'+yen(d.bbp)+'</td>'
+      +'<td class="tjan">'+(d.ean?esc(d.ean):'—')+'</td>'
+      +'<td style="font-size:11px;color:#666">'+esc(d._oroshi||'')+'<br>'+esc(d._savedAt||'')+'</td></tr>';
+  }
+  if(!list.length) html='<tr><td colspan="9" class="empty">保存した商品はありません。カード/一覧表の ★ で追加できます。</td></tr>';
+  document.getElementById('savedbody').innerHTML=html;
+}
+
+function exportSavedCSV(){
+  const s=getSaved(); if(!s.length){alert('保存リストが空です。');return;}
+  const head=['卸名','ブランド','製造者','商品名','JAN','ASIN','月販','相場(BuyBox)','販売者','保存日'];
+  const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const lines=[head.map(q).join(',')];
+  for(const d of s) lines.push([d._oroshi,d.brand,d.maker,d.name,d.ean,d.asin,d.tsuki,(isNum(d.bbp)?d.bbp:''),d.seller,d._savedAt].map(q).join(','));
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='保存リスト_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+
+// ===== 描画・ビュー =====
 function renderAll(){
   const d=visible();
-  // カード
   document.getElementById('g').innerHTML=d.length?d.map(cardHTML).join(''):
-    '<div class="empty">条件に合う商品がありません。</div>';
-  // 表
+    '<div class="empty">'+(ALL.length?'条件に合う商品がありません。':'まだデータがありません。上の枠に Keepa の xlsx をドロップしてください。')+'</div>';
   document.getElementById('thead').innerHTML=theadHTML();
   document.getElementById('tbody').innerHTML=d.map(rowHTML).join('');
   document.getElementById('cnt').textContent=ALL.length?'（表示 '+d.length+' / 全 '+ALL.length+' 商品）':'';
 }
+function updateTabs(){
+  const hasFile=ALL.length>0, hasSaved=getSaved().length>0;
+  document.getElementById('tabs').classList.toggle('show',hasFile||hasSaved);
+  document.getElementById('bar').classList.toggle('show',hasFile||hasSaved);
+  document.getElementById('tabSaved').textContent='⭐ 保存リスト'+(hasSaved?'（'+getSaved().length+'）':'');
+}
+function refresh(){ renderAll(); renderSaved(); updateTabs(); }
 
 function setView(v){
   view=v;
   document.getElementById('tabCard').classList.toggle('act',v==='card');
   document.getElementById('tabTable').classList.toggle('act',v==='table');
+  document.getElementById('tabSaved').classList.toggle('act',v==='saved');
   document.getElementById('g').style.display=v==='card'?'':'none';
   document.getElementById('tblwrap').style.display=v==='table'?'':'none';
+  document.getElementById('savedwrap').style.display=v==='saved'?'':'none';
+  if(v==='saved') renderSaved();
 }
 function sortBy(k){
   if(sortKey===k){sortDir=sortDir==='asc'?'desc':'asc';}
@@ -270,17 +379,34 @@ function sortBy(k){
 }
 
 // ===== 読み込み =====
+function populateBrands(){
+  const sel=document.getElementById('brandSel');
+  const brands=[...new Set(ALL.map(x=>x.brand).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ja'));
+  sel.innerHTML='<option value="">全ブランド</option>'+brands.map(b=>'<option value="'+esc(b)+'">'+esc(b)+'</option>').join('');
+  sel.value='';brandFilter='';
+}
 function afterLoad(data){
-  ALL=data; sortKey='tsuki'; sortDir='desc';
+  ALL=data; sortKey='tsuki'; sortDir='desc'; brandFilter='';
   const oroshi=document.getElementById('oname').value.trim();
   KEY=(oroshi.replace(/\W+/g,'')||'catalog')+'_hidden_50';
   document.title=(oroshi?oroshi+' ':'')+'月販50カタログ';
-  const has=data.length>0;
-  document.getElementById('empty').style.display=has?'none':'';
-  document.getElementById('tabs').classList.toggle('show',has);
-  document.getElementById('bar').classList.toggle('show',has);
-  renderAll();
-  if(!has) alert('月販50以上の商品が見つかりませんでした。\nKeepaの「月間売上トレンド: 先月の購入」列が空だと0件になります。');
+  populateBrands();
+  setView('card');
+  refresh();
+  if(!data.length) alert('月販50以上の商品が見つかりませんでした。\nKeepaの「月間売上トレンド: 先月の購入」列が空だと0件になります。');
+}
+function resetAll(){
+  ALL=[]; curMode='all'; hideNb=false; hideSet=false; brandFilter='';
+  sortKey='tsuki'; sortDir='desc';
+  document.getElementById('file').value='';
+  document.getElementById('oname').value='';
+  document.getElementById('brandSel').innerHTML='<option value="">全ブランド</option>';
+  document.querySelectorAll('.btn.tgl.act').forEach(b=>b.classList.remove('act'));
+  document.querySelectorAll('.bar .btn.on').forEach(b=>b.classList.remove('on'));
+  const allBtn=document.querySelector('.bar .btn');if(allBtn)allBtn.classList.add('on');
+  document.title='カタログ仕上げ｜Keepa→月販50カタログ';
+  setView('card');
+  refresh();
 }
 function handleFile(f){
   const rd=new FileReader();
@@ -303,14 +429,18 @@ fileInput.addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target
 ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
 ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
 drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)handleFile(f);});
-document.getElementById('oname').addEventListener('change',()=>{if(ALL.length){KEY=(document.getElementById('oname').value.trim().replace(/\W+/g,'')||'catalog')+'_hidden_50';document.title=(document.getElementById('oname').value.trim()||'')+' 月販50カタログ';renderAll();}});
+document.getElementById('brandSel').addEventListener('change',e=>{brandFilter=e.target.value;});
+document.getElementById('oname').addEventListener('change',()=>{if(ALL.length){KEY=(document.getElementById('oname').value.trim().replace(/\W+/g,'')||'catalog')+'_hidden_50';document.title=(document.getElementById('oname').value.trim()||'')+' 月販50カタログ';}});
 
 // ===== フィルタ・非表示（localStorage）=====
 function getHidden(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}}
 function setHidden(a){try{localStorage.setItem(KEY,JSON.stringify(a))}catch(e){}}
 function hideCard(e,asin){e.preventDefault();e.stopPropagation();const h=getHidden();if(!h.includes(asin))h.push(asin);setHidden(h);renderAll();}
 function resetHidden(){setHidden([]);renderAll();}
-function flt(btn,mode){curMode=mode;document.querySelectorAll('.btn.on').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderAll();}
-function toggle(kind,btn){if(kind==='nb'){hideNb=!hideNb;btn.classList.toggle('act',hideNb);}else{hideSet=!hideSet;btn.classList.toggle('act',hideSet);}renderAll();}
+function flt(btn,mode){curMode=mode;document.querySelectorAll('.bar .btn.on').forEach(b=>b.classList.remove('on'));btn.classList.add('on');refresh();}
+function toggle(kind,btn){if(kind==='nb'){hideNb=!hideNb;btn.classList.toggle('act',hideNb);}else{hideSet=!hideSet;btn.classList.toggle('act',hideSet);}refresh();}
+
+// 起動時：保存リストがあればタブを見せる
+updateTabs();
 </script>
 </body></html>
