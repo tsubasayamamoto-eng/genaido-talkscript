@@ -35,6 +35,7 @@ header h1{margin:0;font-size:18px}.sub{font-size:12px;opacity:.85;margin-top:3px
 .ctools .hide{background:rgba(0,0,0,.55);color:#fff}.ctools .hide:hover{background:#e53935}
 .imgwrap{position:relative;background:#fff;height:180px;display:flex;align-items:center;justify-content:center;padding:10px}
 .imgwrap img{max-width:100%;max-height:100%;object-fit:contain}.noimg{color:#bbb;font-size:13px}
+img.pimg{cursor:grab}img.pimg:active{cursor:grabbing}
 .mbadge{position:absolute;top:8px;left:8px;color:#333;font-weight:bold;font-size:13px;padding:3px 9px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .body{padding:10px 12px;display:flex;flex-direction:column;gap:5px;flex:1}
 .chips{display:flex;gap:5px;flex-wrap:wrap}.chip{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:bold}
@@ -235,11 +236,15 @@ function sortData(d){
 }
 
 // ===== カード =====
+function dragAttrs(d){
+  const img=esc(d.img);
+  return 'draggable="true" data-img="'+img+'" data-name="'+esc(d.name)+'" data-code="'+esc(d.ean||'')+'" data-asin="'+esc(d.asin)+'"';
+}
 function cardHTML(d){
   const col=tierColor(d.tsuki);const sv=savedHas(d.asin);
   const chips=(d.tasha?'<span class="chip tasha">他社ブランド</span>':'')+(d.set?'<span class="chip setb">セット品</span>':'');
   const img=esc(d.img);
-  const imgtag=img?'<img loading="lazy" src="'+img+'" alt="">':'<div class="noimg">画像なし</div>';
+  const imgtag=img?'<img class="pimg" '+dragAttrs(d)+' loading="lazy" src="'+img+'" alt="">':'<div class="noimg">画像なし</div>';
   const url='https://www.amazon.co.jp/dp/'+d.asin;
   const jan=d.ean?esc(d.ean):'—';
   return '<div class="card'+(d.tasha?' t':'')+(sv?' saved':'')+'">'
@@ -280,7 +285,7 @@ function rowHTML(d){
   const url='https://www.amazon.co.jp/dp/'+d.asin;
   const tint=rowTint(d.tsuki);const sv=savedHas(d.asin);
   const img=esc(d.img);
-  const thumb=img?'<a href="'+url+'" target="_blank"><img class="tthumb" loading="lazy" src="'+img+'"></a>':'';
+  const thumb=img?'<a href="'+url+'" target="_blank"><img class="tthumb pimg" '+dragAttrs(d)+' loading="lazy" src="'+img+'"></a>':'';
   const chips=(d.tasha?'<span class="tchip tasha">他社</span>':'')+(d.set?'<span class="tchip setb">セット</span>':'');
   return '<tr class="trow" style="background:'+tint+'">'
     +'<td class="tact"><span class="tsave'+(sv?' on':'')+'" title="保存" onclick="toggleSave(event,\''+esc(d.asin)+'\')">★</span> '
@@ -319,7 +324,7 @@ function renderSaved(){
     if(b!==lastBrand){html+='<tr class="brandhead"><td></td><td colspan="8">🏷 '+esc(b)+'</td></tr>';lastBrand=b;}
     const url='https://www.amazon.co.jp/dp/'+d.asin;
     const img=esc(d.img);
-    const thumb=img?'<a href="'+url+'" target="_blank"><img class="tthumb" loading="lazy" src="'+img+'"></a>':'';
+    const thumb=img?'<a href="'+url+'" target="_blank"><img class="tthumb pimg" '+dragAttrs(d)+' loading="lazy" src="'+img+'"></a>':'';
     html+='<tr class="trow" style="background:'+rowTint(d.tsuki||0)+'">'
       +'<td class="tdel" title="この商品を保存から削除" onclick="delSaved(event,\''+esc(d.asin)+'\')">×</td>'
       +'<td>'+thumb+'</td>'
@@ -439,6 +444,21 @@ function hideCard(e,asin){e.preventDefault();e.stopPropagation();const h=getHidd
 function resetHidden(){setHidden([]);renderAll();}
 function flt(btn,mode){curMode=mode;document.querySelectorAll('.bar .btn.on').forEach(b=>b.classList.remove('on'));btn.classList.add('on');refresh();}
 function toggle(kind,btn){if(kind==='nb'){hideNb=!hideNb;btn.classList.toggle('act',hideNb);}else{hideSet=!hideSet;btn.classList.toggle('act',hideSet);}refresh();}
+
+// ===== 写真ドラッグ（見積依頼ツール等へD&D）=====
+document.addEventListener('dragstart', e=>{
+  const im = e.target && e.target.closest ? e.target.closest('img.pimg') : null;
+  if(!im) return;
+  const url = im.dataset.img; if(!url) return;
+  const dt = e.dataTransfer;
+  try{ dt.clearData(); }catch(_){}
+  dt.effectAllowed='copy';
+  dt.setData('text/uri-list', url);
+  dt.setData('text/plain', url);
+  dt.setData('application/x-genaido-product', JSON.stringify({
+    img:url, name:im.dataset.name||'', code:im.dataset.code||'', asin:im.dataset.asin||''}));
+  dt.setData('DownloadURL','image/jpeg:'+((im.dataset.asin||'image')+'.jpg')+':'+url);
+});
 
 // 起動時：保存リストがあればタブを見せる
 updateTabs();
