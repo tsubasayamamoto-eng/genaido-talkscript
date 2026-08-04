@@ -122,8 +122,8 @@ tr.trow:hover td{filter:brightness(.96)}
 <div class="tblwrap" id="savedwrap" style="display:none">
  <div class="savedbar">
    <b id="savedCount">保存 0 件</b>
-   <span>ブランド絞込:</span>
-   <select class="brandsel" id="savedBrandSel" onchange="renderSaved()"><option value="">全ブランド</option></select>
+   <span>メーカーで絞込:</span>
+   <select class="brandsel" id="savedMakerSel" onchange="renderSaved()"><option value="">全メーカー</option></select>
    <button class="btn print" onclick="window.print()">🖨 印刷 / PDF</button>
    <button class="btn save" onclick="exportSavedCSV()">⬇ CSVで書き出す</button>
    <button class="btn reset" onclick="clearSaved()">🗑 保存を全消去</button>
@@ -149,6 +149,8 @@ const num=x=>isNum(x)?x:(x!=null&&x!==''&&!isNaN(x)?parseFloat(x):null);
 const isTasha=b=>TASHA_KEYWORDS.some(k=>String(b||'').includes(k));
 const isSet=n=>SET_RE.test(String(n||''));
 const isNobrand=b=>['ノーブランド品','不明',''].includes(String(b||''));
+// メーカー名の表記ゆれを吸収（例: サンコール(SUNCALL)→サンコール）
+const normMaker=s=>{const t=String(s||'').replace(/[（(][^（）()]*[）)]/g,'').trim();return t||String(s||'').trim()||'(メーカー不明)';};
 const tierColor=t=>t>=1000?'#e53935':t>=500?'#fb8c00':t>=200?'#fbb74d':t>=100?'#ffd54f':'#fff176';
 const rowTint =t=>t>=1000?'#ef9a9a':t>=500?'#ffcc80':t>=200?'#ffe0b2':t>=100?'#fff59d':'#fff9c4';
 const yen=v=>isNum(v)?'¥'+Math.round(v).toLocaleString('ja-JP'):'—';
@@ -197,7 +199,7 @@ function saveOne(asin){
   const d=ALL.find(x=>x.asin===asin); if(!d)return false;
   const s=getSaved(); if(s.some(x=>x.asin===asin))return false;
   const oroshi=document.getElementById('oname').value.trim();
-  s.push(Object.assign({},d,{_oroshi:oroshi,_savedAt:new Date().toISOString().slice(0,10)}));
+  s.push(Object.assign({},d,{_oroshi:oroshi,_savedAt:new Date().toISOString().slice(0,10),_maker:normMaker(d.maker)}));
   setSaved(s); return true;
 }
 function unsaveOne(asin){setSaved(getSaved().filter(x=>x.asin!==asin));}
@@ -303,25 +305,29 @@ function rowHTML(d){
     +'</tr>';
 }
 
-// ===== 保存リスト表示（ブランドごとにまとめる）=====
+// ===== 保存リスト表示（メーカー＝製造者ごとにファイリング）=====
+const savedMaker=x=>x._maker||normMaker(x.maker);
 function renderSaved(){
   let s=getSaved();
-  const bsel=document.getElementById('savedBrandSel');
-  const brands=[...new Set(s.map(x=>x.brand||'(不明)'))].sort((a,b)=>a.localeCompare(b,'ja'));
-  const cur=bsel.value;
-  bsel.innerHTML='<option value="">全ブランド（'+s.length+'件）</option>'+brands.map(b=>'<option value="'+esc(b)+'">'+esc(b)+'</option>').join('');
-  if(brands.includes(cur)) bsel.value=cur;
-  const bf=bsel.value;
-  let list=s.filter(x=>!bf||(x.brand||'(不明)')===bf);
-  // ブランド→月販降順
-  list.sort((a,b)=>{const ba=(a.brand||'(不明)'),bb=(b.brand||'(不明)');if(ba!==bb)return ba.localeCompare(bb,'ja');return (b.tsuki||0)-(a.tsuki||0);});
-  document.getElementById('savedCount').textContent='保存 '+s.length+' 件'+(bf?'（表示 '+list.length+'）':'');
+  const sel=document.getElementById('savedMakerSel');
+  const makers=[...new Set(s.map(savedMaker))].sort((a,b)=>a.localeCompare(b,'ja'));
+  const cur=sel.value;
+  sel.innerHTML='<option value="">全メーカー（'+s.length+'件）</option>'+makers.map(m=>{
+    const c=s.filter(x=>savedMaker(x)===m).length;
+    return '<option value="'+esc(m)+'">'+esc(m)+'（'+c+'）</option>';}).join('');
+  if(makers.includes(cur)) sel.value=cur;
+  const mf=sel.value;
+  let list=s.filter(x=>!mf||savedMaker(x)===mf);
+  // メーカー名→月販降順でファイリング
+  list.sort((a,b)=>{const ma=savedMaker(a),mb=savedMaker(b);if(ma!==mb)return ma.localeCompare(mb,'ja');return (b.tsuki||0)-(a.tsuki||0);});
+  document.getElementById('savedCount').textContent='保存 '+s.length+' 件'+(mf?'（'+mf+' '+list.length+'件）':'／'+makers.length+'メーカー');
   document.getElementById('savedhead').innerHTML=
-    '<tr><th style="cursor:default">削除</th><th>画像</th><th>商品名</th><th>ブランド</th><th>製造者</th><th>月販</th><th>相場</th><th>JAN</th><th>卸/保存日</th></tr>';
-  let html='',lastBrand=null;
+    '<tr><th style="cursor:default">削除</th><th>画像</th><th>商品名</th><th>ブランド</th><th>製造者</th><th>月販</th><th>カート価格</th><th>JAN</th><th>卸/保存日</th></tr>';
+  let html='',lastMaker=null;
   for(const d of list){
-    const b=d.brand||'(不明)';
-    if(b!==lastBrand){html+='<tr class="brandhead"><td></td><td colspan="8">🏷 '+esc(b)+'</td></tr>';lastBrand=b;}
+    const m=savedMaker(d);
+    if(m!==lastMaker){const c=s.filter(x=>savedMaker(x)===m).length;
+      html+='<tr class="brandhead"><td></td><td colspan="8">🏭 '+esc(m)+'　<span style="font-weight:normal;color:#78909c">'+c+'件</span></td></tr>';lastMaker=m;}
     const url='https://www.amazon.co.jp/dp/'+d.asin;
     const img=esc(d.img);
     const thumb=img?'<a href="'+url+'" target="_blank"><img class="tthumb pimg" '+dragAttrs(d)+' loading="lazy" src="'+img+'"></a>':'';
@@ -340,14 +346,17 @@ function renderSaved(){
 }
 
 function exportSavedCSV(){
-  const s=getSaved(); if(!s.length){alert('保存リストが空です。');return;}
-  const head=['卸名','ブランド','製造者','商品名','JAN','ASIN','月販','相場(BuyBox)','販売者','保存日'];
+  let s=getSaved(); if(!s.length){alert('保存リストが空です。');return;}
+  const mf=document.getElementById('savedMakerSel').value;
+  let rows=s.filter(x=>!mf||savedMaker(x)===mf);
+  rows.sort((a,b)=>{const ma=savedMaker(a),mb=savedMaker(b);if(ma!==mb)return ma.localeCompare(mb,'ja');return (b.tsuki||0)-(a.tsuki||0);});
+  const head=['メーカー','卸名','ブランド','製造者','商品名','JAN','ASIN','月販','カート価格','販売者','保存日'];
   const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
   const lines=[head.map(q).join(',')];
-  for(const d of s) lines.push([d._oroshi,d.brand,d.maker,d.name,d.ean,d.asin,d.tsuki,(isNum(d.bbp)?d.bbp:''),d.seller,d._savedAt].map(q).join(','));
+  for(const d of rows) lines.push([savedMaker(d),d._oroshi,d.brand,d.maker,d.name,d.ean,d.asin,d.tsuki,(isNum(d.bbp)?d.bbp:''),d.seller,d._savedAt].map(q).join(','));
   const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='保存リスト_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+  a.download='保存リスト_'+(mf?mf+'_':'')+new Date().toISOString().slice(0,10)+'.csv';a.click();
 }
 
 // ===== 描画・ビュー =====
