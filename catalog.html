@@ -85,7 +85,7 @@ td textarea.ed{resize:vertical;min-height:26px;line-height:1.4}
 @page{margin:8mm 7mm}
 @media print{
  header,.ctools,.txhide,.tsave,.tdel,.tact,.savedbar,.makertabs,#manualBar,.srcbanner{display:none!important}body{background:#fff}
- .sellercol,.seller{display:none!important}
+ .sellercol,.seller,.cartcol,.price,.memocol,.cardmemowrap,.mlabel{display:none!important}
  td .ed{border-color:transparent!important;background:transparent!important}
  .grid{grid-template-columns:repeat(3,1fr);gap:8px;padding:0}
  .card{break-inside:avoid;box-shadow:none;border:1px solid #ccc}.imgwrap{height:150px}.card:hover{box-shadow:none}
@@ -310,7 +310,7 @@ function cardHTML(d){
     ? '<div class="ctools"><button class="save on" title="保存から削除" onclick="delById(event,\''+id+'\')">★</button></div>'
     : '<div class="ctools"><button class="save'+(sv?' on':'')+'" title="保存リストに追加/解除" onclick="toggleSave(event,\''+esc(d.asin)+'\')">★</button>'
       +'<button class="hide" title="非表示" onclick="hideCard(event,\''+esc(d.asin)+'\')">×</button></div>';
-  const inner='<div class="imgwrap">'+imgtag+'<span class="mbadge" style="background:'+col+'">月販 '+Math.floor(d.tsuki||0)+'+</span></div>'
+  const inner='<div class="imgwrap">'+imgtag+'<span class="mbadge" style="background:'+col+'"><span class="mlabel">月販 </span>'+Math.floor(d.tsuki||0)+'+</span></div>'
     +'<div class="body"><div class="chips">'+chips+'</div><div class="name">'+nameHtml+'</div>'
     +'<div class="brand">'+esc(d.brand)+'</div><div class="jan">JAN: <b>'+jan+'</b></div>'
     +'<div class="foot"><span class="price">'+(saved?'カート ':'相場 ')+yen(d.bbp)+'</span><span class="seller">'+esc((d.seller||'').slice(0,16))+'</span></div></div>';
@@ -338,7 +338,7 @@ const COLS=[
 function theadHTML(){
   let h='<tr><th style="cursor:default">'+(srcMode==='saved'?'削除':'★/×')+'</th>';
   for(const c of COLS){
-    const pc=(c.k==='seller'?' sellercol':'');
+    const pc=(c.k==='seller'?' sellercol':c.k==='bbp'?' cartcol':'');
     if(c.sort===false){h+='<th class="'+pc.trim()+'" style="cursor:default">'+c.t+'</th>';continue;}
     const on=sortKey===c.k;const ar=on?(sortDir==='asc'?'▲':'▼'):'⇅';
     h+='<th class="'+(on?'sorted':'')+pc+'" onclick="sortBy(\''+c.k+'\')">'+c.t+'<span class="ar">'+ar+'</span></th>';
@@ -364,7 +364,7 @@ function rowHTML(d){
     +'<td>'+thumb+'</td>'
     +'<td class="tname">'+nameCell+chips+'</td>'
     +'<td class="tmonth" style="color:'+((d.tsuki||0)>=500?'#fff':'#333')+';background:'+tierColor(d.tsuki||0)+'">'+Math.floor(d.tsuki||0)+'</td>'
-    +'<td class="tnum">'+yen(d.bbp)+'</td>'
+    +'<td class="tnum cartcol">'+yen(d.bbp)+'</td>'
     +'<td class="tnum">'+(isNum(d.rank)?Math.round(d.rank).toLocaleString('ja-JP'):'—')+'</td>'
     +'<td>'+esc(d.brand)+'</td>'
     +'<td>'+esc(d.maker)+'</td>'
