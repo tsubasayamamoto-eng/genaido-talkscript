@@ -67,9 +67,20 @@ tr.trow:hover td{filter:brightness(.96)}
 .tsave{cursor:pointer;color:#cfcfcf;font-size:16px}.tsave.on{color:#f9a825}
 .txhide,.tdel{cursor:pointer;color:#b0bec5;font-weight:bold}.txhide:hover,.tdel:hover{color:#e53935}
 .brandhead td{background:#eceff1!important;font-weight:bold;color:#37474f;font-size:12px}
+.brandhead{cursor:pointer}.brandhead .fold{display:inline-block;width:14px;color:#78909c}
+.makertabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.mtab{background:#e2e8ee;border:1px solid #cfd8dc;border-radius:16px;padding:6px 13px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.mtab:hover{background:#d3dde6}
+.mtab.on{background:#00838f;color:#fff;border-color:#00838f;font-weight:bold}
+.mtab .cnt{opacity:.7;font-size:11px;margin-left:4px}
+td .ed{width:100%;box-sizing:border-box;border:1px solid #cfd8dc;border-radius:4px;padding:3px 5px;font:inherit;background:#fffef7}
+td .ed:focus{outline:none;border-color:#00838f;background:#fff}
+td textarea.ed{resize:vertical;min-height:26px;line-height:1.4}
+.memocol{width:150px}
 @page{margin:0}
 @media print{
- header,.ctools,.txhide,.tsave,.tdel,.tact,.savedbar{display:none!important}body{background:#fff}
+ header,.ctools,.txhide,.tsave,.tdel,.tact,.savedbar,.makertabs,#manualBar{display:none!important}body{background:#fff}
+ td .ed{border-color:transparent!important;background:transparent!important}
  .grid{grid-template-columns:repeat(3,1fr);gap:8px;padding:8mm}
  .card{break-inside:avoid;box-shadow:none;border:1px solid #ccc}.imgwrap{height:150px}.card:hover{box-shadow:none}
  .tblwrap{padding:6mm;overflow:visible}table.cat{box-shadow:none;font-size:10px}
@@ -122,11 +133,14 @@ tr.trow:hover td{filter:brightness(.96)}
 <div class="tblwrap" id="savedwrap" style="display:none">
  <div class="savedbar">
    <b id="savedCount">保存 0 件</b>
-   <span>メーカーで絞込:</span>
-   <select class="brandsel" id="savedMakerSel" onchange="renderSaved()"><option value="">全メーカー</option></select>
    <button class="btn print" onclick="window.print()">🖨 印刷 / PDF</button>
    <button class="btn save" onclick="exportSavedCSV()">⬇ CSVで書き出す</button>
    <button class="btn reset" onclick="clearSaved()">🗑 保存を全消去</button>
+ </div>
+ <div class="makertabs" id="makerTabs"></div>
+ <div id="manualBar" style="display:none;margin:0 0 10px">
+   <button class="btn save" onclick="addManualToMaker()">＋ このメーカーに商品を手入力で追加</button>
+   <span style="font-size:11px;color:#78909c;margin-left:8px">※ カタログの★でも、このメーカーへ自動で追加されます</span>
  </div>
  <table class="cat" id="savedtbl"><thead id="savedhead"></thead><tbody id="savedbody"></tbody></table>
 </div>
@@ -141,6 +155,8 @@ const SAVED_KEY='catalog_saved_v1';   // 保存リストは全ファイル共通
 let KEY='catalog_hidden_50';
 let curMode='all',hideNb=false,hideSet=false,view='card',brandFilter='';
 let sortKey='tsuki',sortDir='desc';
+let savedMakerFilter='';           // 選択中のメーカータブ（''=全部）
+let collapsedMakers={};            // 折りたたみ中のメーカー
 let ALL=[];
 
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -195,14 +211,33 @@ function processRows(rows){
 function getSaved(){try{return JSON.parse(localStorage.getItem(SAVED_KEY)||'[]')}catch(e){return[]}}
 function setSaved(a){try{localStorage.setItem(SAVED_KEY,JSON.stringify(a))}catch(e){}}
 function savedHas(asin){return getSaved().some(x=>x.asin===asin);}
+const idOf=d=>d._id||d.asin||'';
 function saveOne(asin){
   const d=ALL.find(x=>x.asin===asin); if(!d)return false;
   const s=getSaved(); if(s.some(x=>x.asin===asin))return false;
   const oroshi=document.getElementById('oname').value.trim();
-  s.push(Object.assign({},d,{_oroshi:oroshi,_savedAt:new Date().toISOString().slice(0,10),_maker:normMaker(d.maker)}));
+  s.push(Object.assign({},d,{_id:d.asin,_oroshi:oroshi,_savedAt:new Date().toISOString().slice(0,10),_maker:normMaker(d.maker),_memo:''}));
   setSaved(s); return true;
 }
 function unsaveOne(asin){setSaved(getSaved().filter(x=>x.asin!==asin));}
+// メモ等の編集を保存（idで対象特定）
+function editSaved(id,field,value){
+  const s=getSaved();const it=s.find(x=>idOf(x)===id);if(!it)return;
+  it[field]=value; if(field==='maker')it._maker=normMaker(value); setSaved(s);
+}
+function delById(e,id){e.preventDefault();e.stopPropagation();setSaved(getSaved().filter(x=>idOf(x)!==id));refresh();}
+// 選択中メーカーへ手入力の空商品を追加
+function addManualToMaker(){
+  const m=savedMakerFilter; if(!m){alert('先に上のメーカータブを選んでください。');return;}
+  const s=getSaved();
+  s.push({_id:'m'+Date.now()+'_'+Math.floor(Math.random()*10000),_manual:true,_maker:m,maker:m,brand:'',
+    name:'',ean:'',asin:'',img:'',tsuki:0,bbp:null,seller:'',_oroshi:'手入力',
+    _savedAt:new Date().toISOString().slice(0,10),_memo:''});
+  setSaved(s); refresh();
+}
+// メーカータブを選ぶ
+function setMakerTab(m){savedMakerFilter=m;renderSaved();}
+function toggleFold(m){collapsedMakers[m]=!collapsedMakers[m];renderSaved();}
 function toggleSave(e,asin){e.preventDefault();e.stopPropagation();if(savedHas(asin))unsaveOne(asin);else saveOne(asin);refresh();}
 function saveVisible(){
   const v=visible(); let n=0;
@@ -305,55 +340,70 @@ function rowHTML(d){
     +'</tr>';
 }
 
-// ===== 保存リスト表示（メーカー＝製造者ごとにファイリング）=====
+// ===== 保存リスト表示（メーカー＝製造者ごとにタブでファイリング）=====
 const savedMaker=x=>x._maker||normMaker(x.maker);
 function renderSaved(){
   let s=getSaved();
-  const sel=document.getElementById('savedMakerSel');
   const makers=[...new Set(s.map(savedMaker))].sort((a,b)=>a.localeCompare(b,'ja'));
-  const cur=sel.value;
-  sel.innerHTML='<option value="">全メーカー（'+s.length+'件）</option>'+makers.map(m=>{
-    const c=s.filter(x=>savedMaker(x)===m).length;
-    return '<option value="'+esc(m)+'">'+esc(m)+'（'+c+'）</option>';}).join('');
-  if(makers.includes(cur)) sel.value=cur;
-  const mf=sel.value;
-  let list=s.filter(x=>!mf||savedMaker(x)===mf);
-  // メーカー名→月販降順でファイリング
+  if(savedMakerFilter && !makers.includes(savedMakerFilter)) savedMakerFilter='';
+  // メーカータブ
+  let th='<button class="mtab'+(!savedMakerFilter?' on':'')+'" data-maker="">全メーカー<span class="cnt">'+s.length+'</span></button>';
+  th+=makers.map(m=>{const c=s.filter(x=>savedMaker(x)===m).length;
+    return '<button class="mtab'+(savedMakerFilter===m?' on':'')+'" data-maker="'+esc(m)+'">🏭 '+esc(m)+'<span class="cnt">'+c+'</span></button>';}).join('');
+  document.getElementById('makerTabs').innerHTML=th;
+  document.getElementById('manualBar').style.display=savedMakerFilter?'':'none';
+
+  let list=s.filter(x=>!savedMakerFilter||savedMaker(x)===savedMakerFilter);
   list.sort((a,b)=>{const ma=savedMaker(a),mb=savedMaker(b);if(ma!==mb)return ma.localeCompare(mb,'ja');return (b.tsuki||0)-(a.tsuki||0);});
-  document.getElementById('savedCount').textContent='保存 '+s.length+' 件'+(mf?'（'+mf+' '+list.length+'件）':'／'+makers.length+'メーカー');
+  document.getElementById('savedCount').textContent='保存 '+s.length+' 件'+(savedMakerFilter?'（'+savedMakerFilter+' '+list.length+'件）':'／'+makers.length+'メーカー');
   document.getElementById('savedhead').innerHTML=
-    '<tr><th style="cursor:default">削除</th><th>画像</th><th>商品名</th><th>ブランド</th><th>製造者</th><th>月販</th><th>カート価格</th><th>JAN</th><th>卸/保存日</th></tr>';
+    '<tr><th style="cursor:default">削除</th><th>画像</th><th>商品名</th><th>ブランド</th><th>製造者</th><th>月販</th><th>カート価格</th><th>JAN</th><th class="memocol">メモ（編集可）</th><th>卸/保存日</th></tr>';
+  const showHeaders=!savedMakerFilter;   // 全メーカー表示のときだけ見出しを出す
   let html='',lastMaker=null;
   for(const d of list){
-    const m=savedMaker(d);
-    if(m!==lastMaker){const c=s.filter(x=>savedMaker(x)===m).length;
-      html+='<tr class="brandhead"><td></td><td colspan="8">🏭 '+esc(m)+'　<span style="font-weight:normal;color:#78909c">'+c+'件</span></td></tr>';lastMaker=m;}
+    const m=savedMaker(d), id=idOf(d);
+    if(showHeaders && m!==lastMaker){
+      const c=s.filter(x=>savedMaker(x)===m).length, folded=!!collapsedMakers[m];
+      html+='<tr class="brandhead" data-maker="'+esc(m)+'"><td></td><td colspan="9"><span class="fold">'+(folded?'▸':'▾')+'</span>🏭 '+esc(m)+'　<span style="font-weight:normal;color:#78909c">'+c+'件</span></td></tr>';
+      lastMaker=m;
+    }
+    if(showHeaders && collapsedMakers[m]) continue;   // 折りたたみ中は非表示
     const url='https://www.amazon.co.jp/dp/'+d.asin;
     const img=esc(d.img);
-    const thumb=img?'<a href="'+url+'" target="_blank"><img class="tthumb pimg" '+dragAttrs(d)+' loading="lazy" src="'+img+'"></a>':'';
+    const thumb=img?'<a href="'+url+'" target="_blank"><img class="tthumb pimg" '+dragAttrs(d)+' loading="lazy" src="'+img+'"></a>':(d._manual?'<span style="color:#bbb;font-size:11px">—</span>':'');
+    const nameCell=d._manual
+      ? '<textarea class="ed" placeholder="商品名を入力" onchange="editSaved(\''+id+'\',\'name\',this.value)">'+esc(d.name)+'</textarea>'
+      : '<a href="'+url+'" target="_blank">'+esc(d.name)+'</a>';
+    const janCell=d._manual
+      ? '<input class="ed" placeholder="JAN" value="'+esc(d.ean||'')+'" onchange="editSaved(\''+id+'\',\'ean\',this.value)">'
+      : '<span class="tjan">'+(d.ean?esc(d.ean):'—')+'</span>';
+    const monthTd=d._manual
+      ? '<td class="tmonth" style="color:#999">—</td>'
+      : '<td class="tmonth" style="color:'+((d.tsuki||0)>=500?'#fff':'#333')+';background:'+tierColor(d.tsuki||0)+'">'+Math.floor(d.tsuki||0)+'</td>';
     html+='<tr class="trow" style="background:'+rowTint(d.tsuki||0)+'">'
-      +'<td class="tdel" title="この商品を保存から削除" onclick="delSaved(event,\''+esc(d.asin)+'\')">×</td>'
+      +'<td class="tdel" title="この商品を保存から削除" onclick="delById(event,\''+id+'\')">×</td>'
       +'<td>'+thumb+'</td>'
-      +'<td class="tname"><a href="'+url+'" target="_blank">'+esc(d.name)+'</a></td>'
+      +'<td class="tname">'+nameCell+'</td>'
       +'<td>'+esc(d.brand)+'</td><td>'+esc(d.maker||'')+'</td>'
-      +'<td class="tmonth" style="color:'+((d.tsuki||0)>=500?'#fff':'#333')+';background:'+tierColor(d.tsuki||0)+'">'+Math.floor(d.tsuki||0)+'</td>'
+      +monthTd
       +'<td class="tnum">'+yen(d.bbp)+'</td>'
-      +'<td class="tjan">'+(d.ean?esc(d.ean):'—')+'</td>'
+      +'<td>'+janCell+'</td>'
+      +'<td class="memocol"><textarea class="ed" placeholder="仕入値・ロット・メモ" onchange="editSaved(\''+id+'\',\'_memo\',this.value)">'+esc(d._memo||'')+'</textarea></td>'
       +'<td style="font-size:11px;color:#666">'+esc(d._oroshi||'')+'<br>'+esc(d._savedAt||'')+'</td></tr>';
   }
-  if(!list.length) html='<tr><td colspan="9" class="empty">保存した商品はありません。カード/一覧表の ★ で追加できます。</td></tr>';
+  if(!list.length) html='<tr><td colspan="10" class="empty">保存した商品はありません。カード/一覧表の ★ で追加できます。</td></tr>';
   document.getElementById('savedbody').innerHTML=html;
 }
 
 function exportSavedCSV(){
   let s=getSaved(); if(!s.length){alert('保存リストが空です。');return;}
-  const mf=document.getElementById('savedMakerSel').value;
+  const mf=savedMakerFilter;
   let rows=s.filter(x=>!mf||savedMaker(x)===mf);
   rows.sort((a,b)=>{const ma=savedMaker(a),mb=savedMaker(b);if(ma!==mb)return ma.localeCompare(mb,'ja');return (b.tsuki||0)-(a.tsuki||0);});
-  const head=['メーカー','卸名','ブランド','製造者','商品名','JAN','ASIN','月販','カート価格','販売者','保存日'];
+  const head=['メーカー','卸名','ブランド','製造者','商品名','JAN','ASIN','月販','カート価格','販売者','メモ','保存日'];
   const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
   const lines=[head.map(q).join(',')];
-  for(const d of rows) lines.push([savedMaker(d),d._oroshi,d.brand,d.maker,d.name,d.ean,d.asin,d.tsuki,(isNum(d.bbp)?d.bbp:''),d.seller,d._savedAt].map(q).join(','));
+  for(const d of rows) lines.push([savedMaker(d),d._oroshi,d.brand,d.maker,d.name,d.ean,d.asin,d.tsuki,(isNum(d.bbp)?d.bbp:''),d.seller,d._memo,d._savedAt].map(q).join(','));
   const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='保存リスト_'+(mf?mf+'_':'')+new Date().toISOString().slice(0,10)+'.csv';a.click();
@@ -468,6 +518,10 @@ document.addEventListener('dragstart', e=>{
     img:url, name:im.dataset.name||'', code:im.dataset.code||'', asin:im.dataset.asin||''}));
   dt.setData('DownloadURL','image/jpeg:'+((im.dataset.asin||'image')+'.jpg')+':'+url);
 });
+
+// 保存リストのメーカータブ／折りたたみ見出し
+document.getElementById('makerTabs').addEventListener('click',e=>{const b=e.target.closest('.mtab');if(b)setMakerTab(b.dataset.maker||'');});
+document.getElementById('savedbody').addEventListener('click',e=>{const h=e.target.closest('.brandhead');if(h)toggleFold(h.dataset.maker||'');});
 
 // 起動時：保存リストがあればタブを見せる
 updateTabs();
