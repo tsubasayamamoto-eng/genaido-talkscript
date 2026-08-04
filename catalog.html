@@ -85,6 +85,7 @@ td textarea.ed{resize:vertical;min-height:26px;line-height:1.4}
 @page{margin:0}
 @media print{
  header,.ctools,.txhide,.tsave,.tdel,.tact,.savedbar,.makertabs,#manualBar,.srcbanner{display:none!important}body{background:#fff}
+ .sellercol,.seller{display:none!important}
  td .ed{border-color:transparent!important;background:transparent!important}
  .grid{grid-template-columns:repeat(3,1fr);gap:8px;padding:8mm}
  .card{break-inside:avoid;box-shadow:none;border:1px solid #ccc}.imgwrap{height:150px}.card:hover{box-shadow:none}
@@ -337,9 +338,10 @@ const COLS=[
 function theadHTML(){
   let h='<tr><th style="cursor:default">'+(srcMode==='saved'?'削除':'★/×')+'</th>';
   for(const c of COLS){
-    if(c.sort===false){h+='<th style="cursor:default">'+c.t+'</th>';continue;}
+    const pc=(c.k==='seller'?' sellercol':'');
+    if(c.sort===false){h+='<th class="'+pc.trim()+'" style="cursor:default">'+c.t+'</th>';continue;}
     const on=sortKey===c.k;const ar=on?(sortDir==='asc'?'▲':'▼'):'⇅';
-    h+='<th class="'+(on?'sorted':'')+'" onclick="sortBy(\''+c.k+'\')">'+c.t+'<span class="ar">'+ar+'</span></th>';
+    h+='<th class="'+(on?'sorted':'')+pc+'" onclick="sortBy(\''+c.k+'\')">'+c.t+'<span class="ar">'+ar+'</span></th>';
   }
   if(srcMode==='saved') h+='<th style="cursor:default" class="memocol">メモ（編集可）</th>';
   return h+'</tr>';
@@ -366,7 +368,7 @@ function rowHTML(d){
     +'<td class="tnum">'+(isNum(d.rank)?Math.round(d.rank).toLocaleString('ja-JP'):'—')+'</td>'
     +'<td>'+esc(d.brand)+'</td>'
     +'<td>'+esc(d.maker)+'</td>'
-    +'<td>'+esc(d.seller)+'</td>'
+    +'<td class="sellercol">'+esc(d.seller)+'</td>'
     +'<td class="tjan">'+(d.ean?esc(d.ean):'—')+'</td>'
     +'<td class="tjan">'+esc(d.asin)+'</td>';
   if(saved) tr+='<td class="memocol"><textarea class="ed" placeholder="仕入値・ロット・メモ" onchange="editSaved(\''+id+'\',\'_memo\',this.value)">'+esc(d._memo||'')+'</textarea></td>';
