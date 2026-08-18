@@ -119,6 +119,8 @@ td textarea.ed{resize:vertical;min-height:26px;line-height:1.4}
 <button class="btn print" onclick="window.print()">🖨 印刷 / PDF保存</button>
 <button class="btn reset" onclick="resetHidden()">非表示を戻す</button>
 <button class="btn newload" onclick="resetAll()">🔄 リセット（新規読込）</button>
+<input id="barCode" class="brandsel" style="width:150px" placeholder="ASIN/JANで取り込み" onkeydown="if(event.key==='Enter'){event.preventDefault();importFromBar();}">
+<button class="btn save" onclick="importFromBar()">＋取り込み</button>
 <span class="legend">月販:
 <span><span class="dot" style="background:#e53935"></span>1000+</span>
 <span><span class="dot" style="background:#fb8c00"></span>500+</span>
@@ -261,11 +263,10 @@ function addManualToMaker(){
   const m=savedMakerFilter||'(手入力)';
   const s=getSaved(); s.push(blankManual(m)); setSaved(s); refresh();
 }
-// ASIN または JAN を入力して取り込む（ASINは画像＋Amazonリンクを自動付与）
-function importByCode(){
-  const el=document.getElementById('codeInput');
-  const code=(el.value||'').trim().replace(/\s/g,'').toUpperCase();
-  if(!code){el.focus();return;}
+// ASIN/JAN を保存リストに取り込む共通処理（ASINは画像＋Amazonリンクを自動付与）
+function importCode(raw){
+  const code=(raw||'').trim().replace(/\s/g,'').toUpperCase();
+  if(!code) return false;
   const m=savedMakerFilter||'(手入力)';
   const item=blankManual(m);
   if(/^[A-Z0-9]{10}$/.test(code)){                 // ASIN（英数字10桁・ISBN含む）
@@ -273,10 +274,24 @@ function importByCode(){
   } else if(/^\d{8}$|^\d{12}$|^\d{13}$/.test(code)){ // JAN/UPC/EAN
     item.ean=code;
   } else {
-    alert('ASIN（英数字10桁）か JAN（8・12・13桁の数字）を入力してください。\n入力: '+code); return;
+    alert('ASIN（英数字10桁）か JAN（8・12・13桁の数字）を入力してください。\n入力: '+code); return false;
   }
-  const s=getSaved(); s.push(item); setSaved(s);
-  el.value=''; setView('saved'); refresh();
+  const s=getSaved(); s.push(item); setSaved(s); return true;
+}
+// 保存リスト内の入力欄から取り込み
+function importByCode(){
+  const el=document.getElementById('codeInput');
+  if(importCode(el.value)){ el.value=''; setView('saved'); refresh(); el.focus(); } else el.focus();
+}
+// カード/一覧表のメインバーから取り込み → その場でカード表示（保存リストの取り込み分だけ表示）
+function importFromBar(){
+  const el=document.getElementById('barCode');
+  if(importCode(el.value)){
+    el.value='';
+    srcMode='saved'; srcMaker=savedMakerFilter||'(手入力)';
+    sortKey='tsuki'; sortDir='desc';
+    setView(view==='table'?'table':'card'); refresh(); el.focus();
+  } else el.focus();
 }
 // メーカータブを選ぶ
 function setMakerTab(m){savedMakerFilter=m;renderSaved();}
