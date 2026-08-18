@@ -388,7 +388,7 @@ function cardHTML(d){
     const imgLinked=hasLink?'<a class="lnk" href="'+url+'" target="_blank">'+imgBlock+'</a>':'<div class="lnk">'+imgBlock+'</div>';
     const shopLink=d.asin?'<a href="'+url+'" target="_blank" style="font-size:11px;color:#0d47a1">Amazonで開く ↗</a>'
       :(d.ean?'<a href="https://www.amazon.co.jp/s?k='+encodeURIComponent(d.ean)+'" target="_blank" style="font-size:11px;color:#0d47a1">Amazonで検索 ↗</a>':'');
-    return '<div class="card saved">'+tools+imgLinked
+    return '<div class="card saved" data-cid="'+id+'">'+tools+imgLinked
       +'<div class="cardedit">'
       +'<textarea class="ed nm" placeholder="商品名を入力" onchange="editSaved(\''+id+'\',\'name\',this.value)">'+esc(d.name)+'</textarea>'
       +'<input class="ed" placeholder="JAN（手入力）" value="'+esc(d.ean||'')+'" onchange="editSaved(\''+id+'\',\'ean\',this.value)">'
@@ -653,6 +653,24 @@ document.addEventListener('dragstart', e=>{
   dt.setData('application/x-genaido-product', JSON.stringify({
     img:url, name:im.dataset.name||'', code:im.dataset.code||'', asin:im.dataset.asin||''}));
   dt.setData('DownloadURL','image/jpeg:'+((im.dataset.asin||'image')+'.jpg')+':'+url);
+});
+
+// ===== 手入力カードへ画像をドラッグ&ドロップして写真をセット =====
+function dropImageUrl(dt){
+  const uri=dt.getData('text/uri-list'); if(uri){const l=uri.split('\n').map(s=>s.trim()).find(s=>s&&!s.startsWith('#'));if(l)return l;}
+  const html=dt.getData('text/html'); if(html){const m=html.match(/<img[^>]+src=["']([^"']+)["']/i);if(m)return m[1];}
+  const plain=dt.getData('text/plain'); if(plain&&/^https?:\/\//i.test(plain.trim()))return plain.trim();
+  return '';
+}
+function fileToDataURL(file){return new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res(null);fr.readAsDataURL(file);});}
+document.addEventListener('dragover',e=>{ if(e.target.closest&&e.target.closest('.card[data-cid]')) e.preventDefault(); });
+document.addEventListener('drop',async e=>{
+  const card=e.target.closest&&e.target.closest('.card[data-cid]'); if(!card) return;
+  e.preventDefault(); e.stopPropagation();
+  const cid=card.dataset.cid;
+  const files=[...(e.dataTransfer.files||[])].filter(f=>f.type.startsWith('image/'));
+  if(files.length){ const d=await fileToDataURL(files[0]); if(d){ editSaved(cid,'img',d); renderAll(); } return; }
+  const url=dropImageUrl(e.dataTransfer); if(url){ editSaved(cid,'img',url); renderAll(); }
 });
 
 // 保存リストのメーカータブ／折りたたみ見出し
