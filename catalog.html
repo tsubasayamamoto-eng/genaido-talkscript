@@ -279,6 +279,8 @@ function editSaved(id,field,value){
   const s=getSaved();const it=s.find(x=>idOf(x)===id);if(!it)return;
   it[field]=value; if(field==='maker')it._maker=normMaker(value); setSaved(s);
 }
+// 画像URLを手動で設定（貼り付け）→ 再描画して反映
+function editImg(id,url){ editSaved(id,'img',(url||'').trim()); renderAll(); }
 function delById(e,id){e.preventDefault();e.stopPropagation();setSaved(getSaved().filter(x=>idOf(x)!==id));refresh();}
 // 手入力の空アイテムの雛形
 function blankManual(maker){
@@ -390,6 +392,7 @@ function cardHTML(d){
       +'<div class="cardedit">'
       +'<textarea class="ed nm" placeholder="商品名を入力" onchange="editSaved(\''+id+'\',\'name\',this.value)">'+esc(d.name)+'</textarea>'
       +'<input class="ed" placeholder="JAN（手入力）" value="'+esc(d.ean||'')+'" onchange="editSaved(\''+id+'\',\'ean\',this.value)">'
+      +'<input class="ed" placeholder="画像URL（出ない時はAmazonの画像アドレスを貼付）" value="'+esc(d.img||'')+'" onchange="editImg(\''+id+'\',this.value)">'
       +(shopLink?'<div>'+shopLink+'</div>':'')
       +'<textarea class="ed cmemo" placeholder="仕入値・ロット・メモ" onchange="editSaved(\''+id+'\',\'_memo\',this.value)">'+esc(d._memo||'')+'</textarea>'
       +'</div></div>';
