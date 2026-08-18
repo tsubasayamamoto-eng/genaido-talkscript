@@ -185,6 +185,14 @@ const normMaker=s=>{const t=String(s||'').replace(/[（(][^（）()]*[）)]/g,''
 const tierColor=t=>t>=1000?'#e53935':t>=500?'#fb8c00':t>=200?'#fbb74d':t>=100?'#ffd54f':'#fff176';
 const rowTint =t=>t>=1000?'#ef9a9a':t>=500?'#ffcc80':t>=200?'#ffe0b2':t>=100?'#fff59d':'#fff9c4';
 const yen=v=>isNum(v)?'¥'+Math.round(v).toLocaleString('ja-JP'):'—';
+// Keepaの「出品者名 (評価%) / 出品者ID」を「出品者名 評価%%」に整形（%はカート取得率ではなく店舗評価）
+function sellerDisp(raw){
+  raw=String(raw||'').trim();
+  if(!raw||raw==='-') return raw||'';
+  const m=raw.match(/^(.*?)\s*\((\d+)%\)/);
+  if(m) return m[1].trim()+' 評価'+m[2]+'%';
+  return raw.split(' / ')[0].trim();
+}
 
 function colIndex(hdr,name){const i=hdr.indexOf(name);if(i<0)throw new Error('列が見つかりません: '+name);return i;}
 
@@ -313,7 +321,7 @@ function cardHTML(d){
   const inner='<div class="imgwrap">'+imgtag+'<span class="mbadge" style="background:'+col+'"><span class="mlabel">月販 </span>'+Math.floor(d.tsuki||0)+'+</span></div>'
     +'<div class="body"><div class="chips">'+chips+'</div><div class="name">'+nameHtml+'</div>'
     +'<div class="brand">'+esc(d.brand)+'</div><div class="jan">JAN: <b>'+jan+'</b></div>'
-    +'<div class="foot"><span class="price">'+(saved?'カート ':'相場 ')+yen(d.bbp)+'</span><span class="seller">'+esc((d.seller||'').slice(0,16))+'</span></div></div>';
+    +'<div class="foot"><span class="price">'+(saved?'カート ':'相場 ')+yen(d.bbp)+'</span><span class="seller">'+esc(sellerDisp(d.seller))+'</span></div></div>';
   const memo = saved
     ? '<div class="cardmemowrap"><textarea placeholder="仕入値・ロット・メモ" onchange="editSaved(\''+id+'\',\'_memo\',this.value)">'+esc(d._memo||'')+'</textarea></div>'
     : '';
@@ -368,7 +376,7 @@ function rowHTML(d){
     +'<td class="tnum">'+(isNum(d.rank)?Math.round(d.rank).toLocaleString('ja-JP'):'—')+'</td>'
     +'<td>'+esc(d.brand)+'</td>'
     +'<td>'+esc(d.maker)+'</td>'
-    +'<td class="sellercol">'+esc(d.seller)+'</td>'
+    +'<td class="sellercol">'+esc(sellerDisp(d.seller))+'</td>'
     +'<td class="tjan">'+(d.ean?esc(d.ean):'—')+'</td>'
     +'<td class="tjan">'+esc(d.asin)+'</td>';
   if(saved) tr+='<td class="memocol"><textarea class="ed" placeholder="仕入値・ロット・メモ" onchange="editSaved(\''+id+'\',\'_memo\',this.value)">'+esc(d._memo||'')+'</textarea></td>';
