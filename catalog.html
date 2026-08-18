@@ -151,9 +151,11 @@ td textarea.ed{resize:vertical;min-height:26px;line-height:1.4}
    <button class="btn reset" onclick="clearSaved()">🗑 保存を全消去</button>
  </div>
  <div class="makertabs" id="makerTabs"></div>
- <div id="manualBar" style="display:none;margin:0 0 10px">
-   <button class="btn save" onclick="addManualToMaker()">＋ このメーカーに商品を手入力で追加</button>
-   <span style="font-size:11px;color:#78909c;margin-left:8px">※ カタログの★でも、このメーカーへ自動で追加されます</span>
+ <div id="manualBar" style="margin:2px 0 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+   <input id="codeInput" class="oname" style="width:210px" placeholder="ASIN(10桁) か JAN を入力" onkeydown="if(event.key==='Enter'){event.preventDefault();importByCode();}">
+   <button class="btn save" onclick="importByCode()">＋ 取り込む</button>
+   <button class="btn" onclick="addManualToMaker()">空の行を追加</button>
+   <span style="font-size:11px;color:#78909c">ASINなら画像とAmazonリンクを自動取得。商品名などは各行で編集できます（★でカタログからも追加可）。</span>
  </div>
  <table class="cat" id="savedtbl"><thead id="savedhead"></thead><tbody id="savedbody"></tbody></table>
 </div>
@@ -249,14 +251,32 @@ function editSaved(id,field,value){
   it[field]=value; if(field==='maker')it._maker=normMaker(value); setSaved(s);
 }
 function delById(e,id){e.preventDefault();e.stopPropagation();setSaved(getSaved().filter(x=>idOf(x)!==id));refresh();}
-// 選択中メーカーへ手入力の空商品を追加
-function addManualToMaker(){
-  const m=savedMakerFilter; if(!m){alert('先に上のメーカータブを選んでください。');return;}
-  const s=getSaved();
-  s.push({_id:'m'+Date.now()+'_'+Math.floor(Math.random()*10000),_manual:true,_maker:m,maker:m,brand:'',
+// 手入力の空アイテムの雛形
+function blankManual(maker){
+  return {_id:'m'+Date.now()+'_'+Math.floor(Math.random()*10000),_manual:true,_maker:maker,maker:(maker==='(手入力)'?'':maker),brand:'',
     name:'',ean:'',asin:'',img:'',tsuki:0,bbp:null,seller:'',_oroshi:'手入力',
-    _savedAt:new Date().toISOString().slice(0,10),_memo:''});
-  setSaved(s); refresh();
+    _savedAt:new Date().toISOString().slice(0,10),_memo:''};
+}
+function addManualToMaker(){
+  const m=savedMakerFilter||'(手入力)';
+  const s=getSaved(); s.push(blankManual(m)); setSaved(s); refresh();
+}
+// ASIN または JAN を入力して取り込む（ASINは画像＋Amazonリンクを自動付与）
+function importByCode(){
+  const el=document.getElementById('codeInput');
+  const code=(el.value||'').trim().replace(/\s/g,'').toUpperCase();
+  if(!code){el.focus();return;}
+  const m=savedMakerFilter||'(手入力)';
+  const item=blankManual(m);
+  if(/^[A-Z0-9]{10}$/.test(code)){                 // ASIN（英数字10桁・ISBN含む）
+    item.asin=code; item.img='https://images-na.ssl-images-amazon.com/images/P/'+code+'.jpg';
+  } else if(/^\d{8}$|^\d{12}$|^\d{13}$/.test(code)){ // JAN/UPC/EAN
+    item.ean=code;
+  } else {
+    alert('ASIN（英数字10桁）か JAN（8・12・13桁の数字）を入力してください。\n入力: '+code); return;
+  }
+  const s=getSaved(); s.push(item); setSaved(s);
+  el.value=''; setView('saved'); refresh();
 }
 // メーカータブを選ぶ
 function setMakerTab(m){savedMakerFilter=m;renderSaved();}
@@ -394,7 +414,6 @@ function renderSaved(){
   th+=makers.map(m=>{const c=s.filter(x=>savedMaker(x)===m).length;
     return '<button class="mtab'+(savedMakerFilter===m?' on':'')+'" data-maker="'+esc(m)+'">🏭 '+esc(m)+'<span class="cnt">'+c+'</span></button>';}).join('');
   document.getElementById('makerTabs').innerHTML=th;
-  document.getElementById('manualBar').style.display=savedMakerFilter?'':'none';
 
   let list=s.filter(x=>!savedMakerFilter||savedMaker(x)===savedMakerFilter);
   list.sort((a,b)=>{const ma=savedMaker(a),mb=savedMaker(b);if(ma!==mb)return ma.localeCompare(mb,'ja');return (b.tsuki||0)-(a.tsuki||0);});
@@ -414,12 +433,15 @@ function renderSaved(){
     const url='https://www.amazon.co.jp/dp/'+d.asin;
     const img=esc(d.img);
     const thumb=img?'<a href="'+url+'" target="_blank"><img class="tthumb pimg" '+dragAttrs(d)+' loading="lazy" src="'+img+'"></a>':(d._manual?'<span style="color:#bbb;font-size:11px">—</span>':'');
+    const shopLink=d.asin?'<a href="https://www.amazon.co.jp/dp/'+esc(d.asin)+'" target="_blank" style="font-size:11px">Amazonで開く ↗</a>'
+      :(d.ean?'<a href="https://www.amazon.co.jp/s?k='+encodeURIComponent(d.ean)+'" target="_blank" style="font-size:11px">Amazonで検索 ↗</a>':'');
     const nameCell=d._manual
-      ? '<textarea class="ed" placeholder="商品名を入力" onchange="editSaved(\''+id+'\',\'name\',this.value)">'+esc(d.name)+'</textarea>'
+      ? '<textarea class="ed" placeholder="商品名を入力" onchange="editSaved(\''+id+'\',\'name\',this.value)">'+esc(d.name)+'</textarea>'+(shopLink?'<div style="margin-top:2px">'+shopLink+'</div>':'')
       : '<a href="'+url+'" target="_blank">'+esc(d.name)+'</a>';
     const janCell=d._manual
       ? '<input class="ed" placeholder="JAN" value="'+esc(d.ean||'')+'" onchange="editSaved(\''+id+'\',\'ean\',this.value)">'
       : '<span class="tjan">'+(d.ean?esc(d.ean):'—')+'</span>';
+    const makerCellManual='<input class="ed" placeholder="製造者/メーカー" value="'+esc(d.maker||'')+'" onchange="editSaved(\''+id+'\',\'maker\',this.value)">';
     const monthTd=d._manual
       ? '<td class="tmonth" style="color:#999">—</td>'
       : '<td class="tmonth" style="color:'+((d.tsuki||0)>=500?'#fff':'#333')+';background:'+tierColor(d.tsuki||0)+'">'+Math.floor(d.tsuki||0)+'</td>';
@@ -427,7 +449,7 @@ function renderSaved(){
       +'<td class="tdel" title="この商品を保存から削除" onclick="delById(event,\''+id+'\')">×</td>'
       +'<td>'+thumb+'</td>'
       +'<td class="tname">'+nameCell+'</td>'
-      +'<td>'+esc(d.brand)+'</td><td>'+esc(d.maker||'')+'</td>'
+      +'<td>'+esc(d.brand)+'</td><td>'+(d._manual?makerCellManual:esc(d.maker||''))+'</td>'
       +monthTd
       +'<td class="tnum">'+yen(d.bbp)+'</td>'
       +'<td>'+janCell+'</td>'
