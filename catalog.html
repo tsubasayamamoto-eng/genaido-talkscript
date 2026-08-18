@@ -198,38 +198,60 @@ function sellerDisp(raw){
   return raw.split(' / ')[0].trim();
 }
 
-function colIndex(hdr,name){const i=hdr.indexOf(name);if(i<0)throw new Error('列が見つかりません: '+name);return i;}
+// ASIN列がフルURL（https://…/dp/XXXXXXXXXX）でもASIN10桁を取り出す
+function extractAsin(v){
+  const s=String(v==null?'':v).trim();
+  const m=s.match(/\/(?:dp|gp\/product|gp\/aw\/d)\/([A-Z0-9]{10})/i)||s.match(/^([A-Z0-9]{10})$/i);
+  return m?m[1].toUpperCase():s;
+}
+const IMG_BY_ASIN=a=>a?'https://images-na.ssl-images-amazon.com/images/P/'+a+'.jpg':'';
+// ASIN由来画像が無い場合Amazonは1x1画像を返す→「画像なし」に置換
+function imgCheck(im){
+  if(im.naturalWidth>1) return;
+  if(im.classList.contains('tthumb')){ im.style.visibility='hidden'; }
+  else { const d=document.createElement('div'); d.className='noimg'; d.textContent='画像なし'; im.replaceWith(d); }
+}
 
 function processRows(rows){
   const hdr=rows[0].map(v=>v==null?'':String(v));
-  const I={};
-  const map={img:'画像',name:'商品名',rank:'売れ筋ランキング: 現在価格',asin:'ASIN',
-    ean:'商品コード: EAN',brand:'ブランド',maker:'製造者',bb:'Buy Box: Buy Box セラー',
-    bbp:'Buy Box: 現在価格',tsuki:'月間売上トレンド: 先月の購入'};
-  for(const k in map) I[k]=colIndex(hdr,map[k]);
+  const find=names=>{ for(const n of names){ const i=hdr.indexOf(n); if(i>=0) return i; } return -1; };
+  // 生Keepaエクスポートと、仕上げ済み9列カラー形式の両方に対応（列名は複数候補で照合）
+  const MAP={
+    img:['画像'], name:['商品名'], rank:['売れ筋ランキング: 現在価格','売れ筋ランキング'],
+    asin:['ASIN'], ean:['商品コード: EAN','商品コード: UPC','JAN'], brand:['ブランド'], maker:['製造者'],
+    bb:['Buy Box: Buy Box セラー','Buy Boxセラー','販売者'], bbp:['Buy Box: 現在価格','Buy Box:現在価格','相場'],
+    tsuki:['月間売上トレンド: 先月の購入','先月の購入(月販)','先月の購入','月販']
+  };
+  const I={}; for(const k in MAP) I[k]=find(MAP[k]);
+  if(I.name<0||I.asin<0||I.tsuki<0)
+    throw new Error('必要な列が見つかりません（商品名・ASIN・先月の購入(月販)）。KeepaエクスポートのxlsxはOKです。');
+  const g=(row,k)=> I[k]>=0 ? row[I[k]] : null;
   const groups={},noean=[];
   for(let r=1;r<rows.length;r++){
     const row=rows[r]; if(!row||row.length===0) continue;
-    const e=row[I.ean];
+    const e=g(row,'ean');
     if(e!=null&&e!==''){const key=String(e).split(',')[0];(groups[key]=groups[key]||[]).push(row);}
     else noean.push(row);
   }
-  const score=r=>[-(num(r[I.tsuki])??-1), r[I.bb]==='Amazon'?1:0, num(r[I.rank])??9e9];
+  const score=r=>[-(num(g(r,'tsuki'))??-1), g(r,'bb')==='Amazon'?1:0, num(g(r,'rank'))??9e9];
   const cmp=(a,b)=>{const x=score(a),y=score(b);for(let i=0;i<3;i++){if(x[i]!==y[i])return x[i]-y[i];}return 0;};
   let kept=[];
   for(const k in groups){kept.push(groups[k].slice().sort(cmp)[0]);}
   kept=kept.concat(noean);
   const data=[];
   for(const r of kept){
-    if(r[I.bb]==='Amazon') continue;              // Amazon本体除外
-    const t=num(r[I.tsuki]);
+    if(g(r,'bb')==='Amazon') continue;            // Amazon本体除外
+    const t=num(g(r,'tsuki'));
     if(t==null||t<50) continue;                   // 月販50以上のみ
-    const brand=String(r[I.brand]||'');
-    data.push({img:String(r[I.img]||'').split(';')[0],name:String(r[I.name]||''),
-      brand:brand,maker:String(r[I.maker]||''),asin:String(r[I.asin]||''),
-      ean:String(r[I.ean]||'').split(',')[0].trim(),tsuki:t,rank:num(r[I.rank]),bbp:num(r[I.bbp]),
-      seller:String(r[I.bb]||''),tasha:isTasha(brand),
-      nobrand:isNobrand(brand),set:isSet(String(r[I.name]||''))});
+    const brand=String(g(r,'brand')||'');
+    const asin=extractAsin(g(r,'asin'));
+    const rawImg=String(g(r,'img')||'').split(';')[0].trim();
+    const img=rawImg||IMG_BY_ASIN(asin);          // 画像列が無ければASINから生成
+    data.push({img:img,name:String(g(r,'name')||''),
+      brand:brand,maker:String(g(r,'maker')||''),asin:asin,
+      ean:String(g(r,'ean')||'').split(',')[0].trim(),tsuki:t,rank:num(g(r,'rank')),bbp:num(g(r,'bbp')),
+      seller:String(g(r,'bb')||''),tasha:isTasha(brand),
+      nobrand:isNobrand(brand),set:isSet(String(g(r,'name')||''))});
   }
   return data;
 }
@@ -344,7 +366,7 @@ function cardHTML(d){
   const col=tierColor(d.tsuki||0);const sv=saved?true:savedHas(d.asin);
   const chips=(d.tasha?'<span class="chip tasha">他社ブランド</span>':'')+(d.set?'<span class="chip setb">セット品</span>':'');
   const img=esc(d.img);
-  const imgtag=img?'<img class="pimg" '+dragAttrs(d)+' loading="lazy" src="'+img+'" alt="">':'<div class="noimg">画像なし</div>';
+  const imgtag=img?'<img class="pimg" '+dragAttrs(d)+' loading="lazy" onload="imgCheck(this)" src="'+img+'" alt="">':'<div class="noimg">画像なし</div>';
   const hasLink=!!d.asin;
   const url=hasLink?'https://www.amazon.co.jp/dp/'+d.asin:'#';
   const jan=d.ean?esc(d.ean):'—';
@@ -395,7 +417,7 @@ function rowHTML(d){
   const url=hasLink?'https://www.amazon.co.jp/dp/'+d.asin:'#';
   const tint=rowTint(d.tsuki||0);const sv=saved?true:savedHas(d.asin);
   const img=esc(d.img);
-  const thumb=img?((hasLink?'<a href="'+url+'" target="_blank">':'')+'<img class="tthumb pimg" '+dragAttrs(d)+' loading="lazy" src="'+img+'">'+(hasLink?'</a>':'')):'';
+  const thumb=img?((hasLink?'<a href="'+url+'" target="_blank">':'')+'<img class="tthumb pimg" '+dragAttrs(d)+' loading="lazy" onload="imgCheck(this)" src="'+img+'">'+(hasLink?'</a>':'')):'';
   const chips=(d.tasha?'<span class="tchip tasha">他社</span>':'')+(d.set?'<span class="tchip setb">セット</span>':'');
   const act = saved
     ? '<td class="tact"><span class="tdel" title="保存から削除" onclick="delById(event,\''+id+'\')">×</span></td>'
@@ -447,7 +469,7 @@ function renderSaved(){
     if(showHeaders && collapsedMakers[m]) continue;   // 折りたたみ中は非表示
     const url='https://www.amazon.co.jp/dp/'+d.asin;
     const img=esc(d.img);
-    const thumb=img?'<a href="'+url+'" target="_blank"><img class="tthumb pimg" '+dragAttrs(d)+' loading="lazy" src="'+img+'"></a>':(d._manual?'<span style="color:#bbb;font-size:11px">—</span>':'');
+    const thumb=img?'<a href="'+url+'" target="_blank"><img class="tthumb pimg" '+dragAttrs(d)+' loading="lazy" onload="imgCheck(this)" src="'+img+'"></a>':(d._manual?'<span style="color:#bbb;font-size:11px">—</span>':'');
     const shopLink=d.asin?'<a href="https://www.amazon.co.jp/dp/'+esc(d.asin)+'" target="_blank" style="font-size:11px">Amazonで開く ↗</a>'
       :(d.ean?'<a href="https://www.amazon.co.jp/s?k='+encodeURIComponent(d.ean)+'" target="_blank" style="font-size:11px">Amazonで検索 ↗</a>':'');
     const nameCell=d._manual
