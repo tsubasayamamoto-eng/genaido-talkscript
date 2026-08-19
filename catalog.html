@@ -53,6 +53,13 @@ table.cat th{position:sticky;top:0;background:#37474f;color:#fff;padding:8px 10p
 table.cat th:hover{background:#455a64}
 table.cat th .ar{opacity:.5;font-size:10px;margin-left:3px}
 table.cat th.sorted{background:#00838f}table.cat th.sorted .ar{opacity:1}
+.colhide{margin-left:6px;color:#b0bec5;font-size:11px;cursor:pointer;font-weight:normal}
+.colhide:hover{color:#fff}
+table.cat th.sorted .colhide{color:#cfe8ec}
+#colRestore{margin-bottom:10px;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.colchip{background:#e2e8ee;border:1px solid #cfd8dc;border-radius:12px;padding:3px 10px;font-size:12px;cursor:pointer}
+.colchip:hover{background:#d3dde6}
+.colchip.all{background:#00838f;color:#fff;border-color:#00838f}
 table.cat td{padding:6px 10px;border-bottom:1px solid rgba(0,0,0,.08);vertical-align:middle}
 tr.trow:hover td{filter:brightness(.96)}
 .tthumb{width:44px;height:44px;object-fit:contain;background:#fff;border-radius:4px}
@@ -89,7 +96,7 @@ td textarea.ed{resize:vertical;min-height:26px;line-height:1.4}
 .cardedit .ed.nm{font-weight:600}
 @page{margin:8mm 7mm}
 @media print{
- header,.ctools,.txhide,.tsave,.tdel,.tact,.savedbar,.makertabs,#manualBar,.srcbanner{display:none!important}body{background:#fff}
+ header,.ctools,.txhide,.tsave,.tdel,.tact,.savedbar,.makertabs,#manualBar,.srcbanner,.colhide,#colRestore{display:none!important}body{background:#fff}
  .sellercol,.seller,.cartcol,.price,.memocol,.cardmemowrap,.mlabel,.cmemo{display:none!important}
  td .ed,.cardedit .ed{border-color:transparent!important;background:transparent!important}
  .grid{grid-template-columns:repeat(3,1fr);gap:8px;padding:0}
@@ -145,6 +152,7 @@ td textarea.ed{resize:vertical;min-height:26px;line-height:1.4}
 </div>
 
 <div class="tblwrap" id="tblwrap" style="display:none">
+ <div id="colRestore" style="display:none"></div>
  <table class="cat" id="tbl"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
 </div>
 
@@ -425,10 +433,11 @@ const COLS=[
 function theadHTML(){
   let h='<tr><th style="cursor:default">'+(srcMode==='saved'?'削除':'★/×')+'</th>';
   for(const c of COLS){
-    const pc=(c.k==='seller'?' sellercol':c.k==='bbp'?' cartcol':'');
-    if(c.sort===false){h+='<th class="'+pc.trim()+'" style="cursor:default">'+c.t+'</th>';continue;}
+    const cls='c-'+c.k+(c.k==='seller'?' sellercol':c.k==='bbp'?' cartcol':'');
+    const hb='<span class="colhide" title="この列を隠す" onclick="event.stopPropagation();hideCol(\''+c.k+'\')">⊗</span>';
+    if(c.sort===false){h+='<th class="'+cls+'" style="cursor:default">'+c.t+hb+'</th>';continue;}
     const on=sortKey===c.k;const ar=on?(sortDir==='asc'?'▲':'▼'):'⇅';
-    h+='<th class="'+(on?'sorted':'')+pc+'" onclick="sortBy(\''+c.k+'\')">'+c.t+'<span class="ar">'+ar+'</span></th>';
+    h+='<th class="'+cls+(on?' sorted':'')+'" onclick="sortBy(\''+c.k+'\')">'+c.t+'<span class="ar">'+ar+'</span>'+hb+'</th>';
   }
   if(srcMode==='saved') h+='<th style="cursor:default" class="memocol">メモ（編集可）</th>';
   return h+'</tr>';
@@ -448,18 +457,43 @@ function rowHTML(d){
   const nameCell = hasLink?'<a href="'+url+'" target="_blank">'+esc(d.name)+'</a>':(esc(d.name)||'<span style="color:#bbb">（未入力）</span>');
   let tr='<tr class="trow" style="background:'+tint+'">'
     +act
-    +'<td>'+thumb+'</td>'
-    +'<td class="tname">'+nameCell+chips+'</td>'
-    +'<td class="tmonth" style="color:'+((d.tsuki||0)>=500?'#fff':'#333')+';background:'+tierColor(d.tsuki||0)+'">'+Math.floor(d.tsuki||0)+'</td>'
-    +'<td class="tnum cartcol">'+yen(d.bbp)+'</td>'
-    +'<td class="tnum">'+(isNum(d.rank)?Math.round(d.rank).toLocaleString('ja-JP'):'—')+'</td>'
-    +'<td>'+esc(d.brand)+'</td>'
-    +'<td>'+esc(d.maker)+'</td>'
-    +'<td class="sellercol">'+esc(sellerDisp(d.seller))+'</td>'
-    +'<td class="tjan">'+(d.ean?esc(d.ean):'—')+'</td>'
-    +'<td class="tjan">'+esc(d.asin)+'</td>';
+    +'<td class="c-img">'+thumb+'</td>'
+    +'<td class="tname c-name">'+nameCell+chips+'</td>'
+    +'<td class="tmonth c-tsuki" style="color:'+((d.tsuki||0)>=500?'#fff':'#333')+';background:'+tierColor(d.tsuki||0)+'">'+Math.floor(d.tsuki||0)+'</td>'
+    +'<td class="tnum cartcol c-bbp">'+yen(d.bbp)+'</td>'
+    +'<td class="tnum c-rank">'+(isNum(d.rank)?Math.round(d.rank).toLocaleString('ja-JP'):'—')+'</td>'
+    +'<td class="c-brand">'+esc(d.brand)+'</td>'
+    +'<td class="c-maker">'+esc(d.maker)+'</td>'
+    +'<td class="sellercol c-seller">'+esc(sellerDisp(d.seller))+'</td>'
+    +'<td class="tjan c-ean">'+(d.ean?esc(d.ean):'—')+'</td>'
+    +'<td class="tjan c-asin">'+esc(d.asin)+'</td>';
   if(saved) tr+='<td class="memocol"><textarea class="ed" placeholder="仕入値・ロット・メモ" onchange="editSaved(\''+id+'\',\'_memo\',this.value)">'+esc(d._memo||'')+'</textarea></td>';
   return tr+'</tr>';
+}
+
+// ===== 一覧表の列 表示/非表示（印刷にも反映）=====
+const COLHIDE_KEY='catalog_hiddencols_v1';
+function getHiddenCols(){try{return JSON.parse(localStorage.getItem(COLHIDE_KEY)||'[]')}catch(e){return[]}}
+function setHiddenCols(a){try{localStorage.setItem(COLHIDE_KEY,JSON.stringify(a))}catch(e){}}
+function hideCol(k){const h=getHiddenCols();if(!h.includes(k))h.push(k);setHiddenCols(h);applyColHide();}
+function showCol(k){setHiddenCols(getHiddenCols().filter(x=>x!==k));applyColHide();}
+function showAllCols(){setHiddenCols([]);applyColHide();}
+function applyColHide(){
+  const h=getHiddenCols();
+  let st=document.getElementById('colHideStyle');
+  if(!st){st=document.createElement('style');st.id='colHideStyle';document.head.appendChild(st);}
+  st.textContent=h.map(k=>'.c-'+k+'{display:none!important}').join('');
+  updateColRestore();
+}
+function updateColRestore(){
+  const el=document.getElementById('colRestore'); if(!el) return;
+  const h=getHiddenCols();
+  if(!h.length){ el.innerHTML=''; el.style.display='none'; return; }
+  el.style.display='';
+  const label=k=>{const c=COLS.find(x=>x.k===k);return c?c.t:k;};
+  el.innerHTML='<span style="color:#78909c;font-size:12px">非表示の列（クリックで戻す）:</span> '
+    +h.map(k=>'<button class="colchip" onclick="showCol(\''+k+'\')">'+esc(label(k))+' ↩</button>').join(' ')
+    +' <button class="colchip all" onclick="showAllCols()">全列を表示</button>';
 }
 
 // ===== 保存リスト表示（メーカー＝製造者ごとにタブでファイリング）=====
@@ -677,7 +711,8 @@ document.addEventListener('drop',async e=>{
 document.getElementById('makerTabs').addEventListener('click',e=>{const b=e.target.closest('.mtab');if(b)setMakerTab(b.dataset.maker||'');});
 document.getElementById('savedbody').addEventListener('click',e=>{const h=e.target.closest('.brandhead');if(h)toggleFold(h.dataset.maker||'');});
 
-// 起動時：保存リストがあればタブを見せる
+// 起動時：保存リストがあればタブを見せる／列の非表示設定を適用
+applyColHide();
 updateTabs();
 </script>
 </body></html>
