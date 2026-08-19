@@ -96,7 +96,7 @@ td textarea.ed{resize:vertical;min-height:26px;line-height:1.4}
 .cardedit .ed.nm{font-weight:600}
 @page{margin:8mm 7mm}
 @media print{
- header,.ctools,.txhide,.tsave,.tdel,.tact,.savedbar,.makertabs,#manualBar,.srcbanner,.colhide,#colRestore{display:none!important}body{background:#fff}
+ header,.ctools,.txhide,.tsave,.tdel,.tact,.savedbar,.makertabs,#manualBar,.srcbanner,.colhide,#colRestore,.ar{display:none!important}body{background:#fff}
  .sellercol,.seller,.cartcol,.price,.memocol,.cardmemowrap,.mlabel,.cmemo{display:none!important}
  td .ed,.cardedit .ed{border-color:transparent!important;background:transparent!important}
  .grid{grid-template-columns:repeat(3,1fr);gap:8px;padding:0}
@@ -431,7 +431,7 @@ const COLS=[
  {k:'asin',  t:'ASIN',   cls:'tjan'},
 ];
 function theadHTML(){
-  let h='<tr><th style="cursor:default">'+(srcMode==='saved'?'削除':'★/×')+'</th>';
+  let h='<tr><th class="tact" style="cursor:default">'+(srcMode==='saved'?'削除':'★/×')+'</th>';
   for(const c of COLS){
     const cls='c-'+c.k+(c.k==='seller'?' sellercol':c.k==='bbp'?' cartcol':'');
     const hb='<span class="colhide" title="この列を隠す" onclick="event.stopPropagation();hideCol(\''+c.k+'\')">⊗</span>';
@@ -512,7 +512,7 @@ function renderSaved(){
   list.sort((a,b)=>{const ma=savedMaker(a),mb=savedMaker(b);if(ma!==mb)return ma.localeCompare(mb,'ja');return (b.tsuki||0)-(a.tsuki||0);});
   document.getElementById('savedCount').textContent='保存 '+s.length+' 件'+(savedMakerFilter?'（'+savedMakerFilter+' '+list.length+'件）':'／'+makers.length+'メーカー');
   document.getElementById('savedhead').innerHTML=
-    '<tr><th style="cursor:default">削除</th><th>画像</th><th>商品名</th><th>ブランド</th><th>製造者</th><th>月販</th><th>カート価格</th><th>JAN</th><th class="memocol">メモ（編集可）</th><th>卸/保存日</th></tr>';
+    '<tr><th class="tdel" style="cursor:default">削除</th><th>画像</th><th>商品名</th><th>ブランド</th><th>製造者</th><th>月販</th><th>カート価格</th><th>JAN</th><th class="memocol">メモ（編集可）</th><th>卸/保存日</th></tr>';
   const showHeaders=!savedMakerFilter;   // 全メーカー表示のときだけ見出しを出す
   let html='',lastMaker=null;
   for(const d of list){
