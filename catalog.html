@@ -171,7 +171,7 @@ td textarea.ed{resize:vertical;min-height:26px;line-height:1.4}
 // ===== 他社ブランド判定キーワード（卸ごとに調整可）=====
 const TASHA_KEYWORDS = ['コタ','COTA','KOTA','滝川','クレ・ド・ポー','clé de peau',
                         'テクノエイト','小林工房','中央有機化学','ユーカリジャパン'];
-const SET_RE = /[×xＸ]\s*\d+\s*(個|本|セット|パック)|\d+\s*(個|本)\s*セット|まとめ買い|\d+\s*個\s*入/;
+const SET_RE = /[×xXＸｘ✕]\s*\d+\s*(?:個|本|袋|缶|箱|点|枚|パック|包|セット|組|ケース)|\d+\s*(?:個|本|袋|缶|箱|点|枚|パック|包|食|カップ|組|ケース)\s*(?:セット|入)|まとめ買い|詰め合わせ|詰合せ|セット販売/;
 const SAVED_KEY='catalog_saved_v1';   // 保存リストは全ファイル共通で蓄積
 
 let KEY='catalog_hidden_50';
